@@ -1,0 +1,1 @@
+DELETE FROM `cor_notifications` WHERE CREATED_AT1 < '2021-04-26 09:30:00';
