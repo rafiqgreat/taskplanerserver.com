@@ -5988,8 +5988,12 @@ function toTimestamp(strDate){
 		    var strstyleDD=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
 			var timecheck = timeSince(new Date(duedatae));
 			if (timecheck = timecheck.includes("ago"))
-			{
+			{				
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 /*			
 var anchortag = '<a href="javascript:changeStatusDPNR(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;">Mark as Complete</a>';								
@@ -6131,6 +6135,10 @@ if(output == "") output = "Never";
 			if (timecheck = timecheck.includes("ago"))
 			{
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 			
 var anchortag = '<a href="javascript:changeStatusDD(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;"><img src="assets/images/mark-completed.gif" id="markascompleted'+data[i].TASK_ID+'" /></a>';								
@@ -7200,7 +7208,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
@@ -7537,7 +7547,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}				
@@ -7885,7 +7897,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
+ continue;																						  
+																						  }
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
