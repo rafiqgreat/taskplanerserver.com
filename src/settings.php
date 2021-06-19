@@ -23,7 +23,7 @@ return [
             'host' => 'localhost',
             'dbname' => 'asawebsu_taskapi2',
             'user' => 'root',
-            'pass' => '',
+            'pass' => '123456',
         ],
     ],
     'commands' => [

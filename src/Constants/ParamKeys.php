@@ -26,7 +26,8 @@ class ParamKeys
     const PASS_CODE = "PASS_CODE";
     const MOBILE_NUMBER = "MOBILE_NUMBER";
     const FULL_NAME = "FULL_NAME";
-	 const SUPER_ADMIN = "SUPER_ADMIN";
+	const SUPER_ADMIN = "SUPER_ADMIN";
+	const IS_ADMIN_VIEWONLY = "IS_ADMIN_VIEWONLY";
 	 const IS_SHIPPER = "IS_SHIPPER";
     const PROFILE_FILENAME = "PROFILE_FILENAME";
     const QB_ID = 'QB_ID';

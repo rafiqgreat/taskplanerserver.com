@@ -180,6 +180,7 @@ class AuthenticationController extends ControllerBase
                                 ParamKeys::SESSION_ID    => $sessionId,
                                 'SUPER_ADMIN'            => ($rows['SUPER_ADMIN'] == '1') ? '1' : '0',
                                 'IS_SHIPPER'             => ($rows['IS_SHIPPER'] == '1') ? '1' : '0',
+								'IS_ADMIN_VIEWONLY'      => ($rows['IS_ADMIN_VIEWONLY'] == '1') ? '1' : '0',
                                 ParamKeys::QB_ID         => $rows['QB_ID'],
                                 ParamKeys::QB_USER_LOGIN => $rows['QB_USER_LOGIN'],
                                 ParamKeys::QB_PASSWORD   => $rows['QB_PASSWORD']
@@ -534,6 +535,7 @@ class AuthenticationController extends ControllerBase
                                                 'VALIDATION_CODE' => $validationCode,
                                                 'SUPER_ADMIN' => ($rowCheck['SUPER_ADMIN'] == '1') ? '1' : '0',
                                                 'IS_SHIPPER' => ($rowCheck['IS_SHIPPER'] == '1') ? '1' : '0',
+												'IS_ADMIN_VIEWONLY'      => ($$rowCheck['IS_ADMIN_VIEWONLY'] == '1') ? '1' : '0',
                                                 ParamKeys::QB_ID => $rowUserDetails['QB_ID'],
                                                 ParamKeys::QB_USER_LOGIN => $rowUserDetails['QB_USER_LOGIN'],
                                                 ParamKeys::QB_PASSWORD => $rowUserDetails['QB_PASSWORD']
@@ -564,7 +566,7 @@ class AuthenticationController extends ControllerBase
                                 
 								
 								///// code by rafiq - for delete device token before update new user login device token
-								if($params[ParamKeys::DEVICE_TOKEN]!="")
+								if(isset($params[ParamKeys::DEVICE_TOKEN]) && $params[ParamKeys::DEVICE_TOKEN]!="")
 								{
 									$queryDelDevice = $this->db->prepare('UPDATE ' . $this->getUserDetails() . ' SET DEVICE_TOKEN = NULL WHERE DEVICE_TOKEN = :device_token');
 									$queryDelDevice->bindParam(":device_token", $params[ParamKeys::DEVICE_TOKEN], \PDO::PARAM_STR);								
@@ -584,7 +586,7 @@ class AuthenticationController extends ControllerBase
                                 $statementDetails->bindParam(":mobileEmail", $rowCheck[ParamKeys::MOBILE_NUMBER], \PDO::PARAM_STR);
                                 $statementDetails->bindParam(":fullName", $rowCheck[ParamKeys::FULL_NAME], \PDO::PARAM_STR);
                                 $statementDetails->bindParam(":device_type", $rowCheck[ParamKeys::DEVICE_TYPE], \PDO::PARAM_STR);
-								if($params[ParamKeys::DEVICE_TOKEN]!="")
+								if(isset($params[ParamKeys::DEVICE_TOKEN]) && $params[ParamKeys::DEVICE_TOKEN]!="")
 								{
                                 	$statementDetails->bindParam(":device_token", $params[ParamKeys::DEVICE_TOKEN], \PDO::PARAM_STR);
 								}
@@ -627,6 +629,7 @@ class AuthenticationController extends ControllerBase
                                             ParamKeys::AUTH_TOKEN => $rowUserDetails['AUTH_TOKEN'],
                                             ParamKeys::SESSION_ID => $rowUserDetails['SESSION_ID'],
                                             'SUPER_ADMIN' => ($rowUserDetails['SUPER_ADMIN'] == '1') ? '1' : '0',
+											'IS_ADMIN_VIEWONLY'      => ($rowUserDetails['IS_ADMIN_VIEWONLY'] == '1') ? '1' : '0',
                                             'IS_SHIPPER' => ($rowUserDetails['IS_SHIPPER'] == '1') ? '1' : '0',
                                             ParamKeys::QB_ID => $rowUserDetails['QB_ID'],
                                             ParamKeys::QB_USER_LOGIN => $rowUserDetails['QB_USER_LOGIN'],
@@ -641,6 +644,7 @@ class AuthenticationController extends ControllerBase
                                         ParamKeys::FULL_NAME => $rowUserDetails['FULL_NAME'],
 										ParamKeys::IS_SHIPPER => $rowUserDetails['IS_SHIPPER'],
 										ParamKeys::SUPER_ADMIN => $rowUserDetails['SUPER_ADMIN'],
+										ParamKeys::IS_ADMIN_VIEWONLY => $rowUserDetails['IS_ADMIN_VIEWONLY'],
                                     );
 
                                     $data = array(

@@ -139,5 +139,7 @@ $app->group('/api2', function () use ($app) {
 
         // Upload Shipment Images
         $app->post('/upload_shipment_images', 'Controllers\ShipmentController:uploadShipmentImages');
+		$app->get('/customers', 'Controllers\ShipmentController:getCustomersList');
+		 $app->get('/fetch-shipment-group-customers', 'Controllers\ShipmentController:getShipmentUsersGroupCustomers');
     });
 });

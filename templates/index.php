@@ -141,7 +141,28 @@ $.ajax({
         }
 	}
 }); 
+/******* for customers listing ***********************/
+	customers = new Array();
+$.ajax({
+	url: '<?php echo $url; ?>api2/shipments/customers?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>',
+   type: 'GET',
+    dataType: 'json',
+    cache: false,		
+    success: function(data) 
+	{                       
+       if(data.STATUS !== 'ERROR') 
+	   {
+		   var d = JSON.parse(data.DATA);		   				
+		    for(var i = 0; i < d.length; i++)
+			{
+				customers[i] = d[i].CUSTOMER_NAME;
+			}
+	   }                  
+	}
+});
+		
 
+/*************************/
 names = new Array();
 $.ajax({
 	url: '<?php echo $url; ?>api2/projects/get-registered-users',
@@ -3004,6 +3025,116 @@ var seleteduser = "";
 
 }
 
+
+function funshowUsersShipmentsOnly(uid,customer_name)
+{	
+ 	//console.log(uid);
+	//console.log(customer_name);
+	//return false;
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				showTaskListShipmentsRedOnly(data,customer_name);
+				showTaskListShipmentsGreenOnly(data,customer_name);
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
+function funshowUsersShipmentsCustomers(uid)
+{	
+
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group-customers?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();			
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				console.log('Rafiq-Testin>>>>>>>>>>>>>>>>',data);
+				
+				showTaskListShipmentsCustomers(data,uid,seleteduser);
+				
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
+
 function funshowUsersShipmentsSearched(keyValue)
 {
 	
@@ -3134,7 +3265,7 @@ function showAssignMeUsersList()
 				var bgclr = ' background:rgba(237, 242, 249, 0.77);';
 			for (var i = 0; i < data.length; i++) {
 				if(i%2==0) { bgclr = ' background:rgba(255, 255, 255, 0.8);'; } else { bgclr = ' background:rgba(237, 242, 249, 0.77);'; }
-			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
+			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
             }
 			submenuShipmentUsers.append('</ul>');
 			}
@@ -3201,6 +3332,29 @@ function showSearchTaskListShipmentsWhite(d)
 	$('#totalsearched').text(ctrd);//<span id="totalsearched">
 }
 
+function showTaskListShipmentsCustomers(d, uid, seleteduser)
+{
+	var ctrd = 0;
+	
+	<?php /*?>if(d.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found Approved with Final Status Pending!</h6></div>');
+	}<?php */?>	
+	taskList.append('<div class="mail-list" style="background: white;color:darkblue;"><h6 style="margin:0px">SELECTED USER : <strong>'+seleteduser+'</strong></h6></div>');
+	
+	for (var i = 0; i < d.length; i++) {
+		ctrd++;
+		//console.log(d[i].CUSTOMER_NAME);
+		
+		var fcusname = "funshowUsersShipmentsOnly("+uid+",'"+d[i].CUSTOMER_NAME+"');";//d[i].CUSTOMER_NAME;
+		
+		
+		taskList.append('<div class="mail-list" style="background: grey;color:white;clear: both;" onclick="' + fcusname + '"><h6 style="margin:0px"><strong>' + d[i].CUSTOMER_NAME + '</strong></h6><span  style="color:#fff; text-align:right; position:absolute; right:10px;"> Total Invoices : ' + d[i].total + ' ( $ ' + d[i].ptotal + ')</span></div>');		
+	}
+	if(ctrd == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsWhite(d)
 {
 	var ctrd = 0;
@@ -3263,6 +3417,39 @@ function showTaskListShipmentsRed(dy)
 		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
 	}
 }
+function showTaskListShipmentsRedOnly(dy,cname)
+{
+	var ctrdy = 0;
+	//console.log(dy);
+	taskList.append('<div class="mail-list" style="background:#ad0000;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - PENDING</h6></div>');
+<?php /*?>	if(dy.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+<?php */?>
+	for (var i = 0; i < dy.length; i++) {	
+		console.log(cname +"=="+dy[i].CUSTOMER_NAME);
+		if(cname != dy[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dy[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dy[i].FINAL_STATUS=="PENDING" ){
+			ctrdy++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dy[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#ad0000;">' + advanceRMA + ' By ' + dy[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + dy[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#ad0000;">INVOICE# ' + dy[i].INVOICE_NUMBER + '  PRICE $ '+ dy[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + convertDate(dy[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#ad0000;">'+dy[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdy == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsGreen(dx)
 {
 	var ctrdx = 0;
@@ -3290,6 +3477,37 @@ function showTaskListShipmentsGreen(dx)
 		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
 	}
 }
+
+function showTaskListShipmentsGreenOnly(dx,cname)
+{
+	var ctrdx = 0;
+	//console.log(dx);
+	taskList.append('<div class="mail-list" style="background:#038912;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - RECEIVED</h6></div>');
+	
+	for (var i = 0; i < dx.length; i++) {	
+		console.log(cname +"=="+dx[i].CUSTOMER_NAME);
+		if(cname != dx[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dx[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dx[i].FINAL_STATUS=="RECEIVED" ){
+			ctrdx++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dx[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#038912;">' + advanceRMA + ' By ' + dx[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#038912;">' + dx[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#038912;">INVOICE# ' + dx[i].INVOICE_NUMBER + '  PRICE $ '+ dx[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#038912;">' + convertDate(dx[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#038912;">'+dx[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdx == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
+	}
+}
+
 
 function showTaskListShipmentsRedSearched(dy)
 {
@@ -4647,7 +4865,7 @@ $.ajax({
            // console.log(data);	
 				
 			for (var i = 0; i < data.length; i++) {
-			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
+			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
             }
 			submenuShipmentUsers.append('</ul>');
 			
@@ -4935,7 +5153,7 @@ function toTimestamp(strDate){
 		var strbuttons = '';
 		if(data.SHIPMENT_STATUS == 'PENDING' || data.SHIPMENT_STATUS == 'REJECTED')
 		{
-			<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1) { ?>
+			<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1&&$_SESSION['logged_in']['IS_ADMIN_VIEWONLY']==0) { ?>
 			strbuttons = '&nbsp;<span><button class="btn btn-primary btn-sm" id="btn_acceptShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Accept Shipment</button></span>&nbsp;<span><button class="btn btn-primary btn-sm" id="btn_rejectShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Reject Shipment</button></span>';
 			<?php } ?>
 		}
@@ -4970,9 +5188,26 @@ function toTimestamp(strDate){
 		var createdate = convertDate(data.CREATED_DATE)
 				 if(createdate=="1 Jan 1970 5:0 AM"){createdate="";}
 				 if(createdate=="31 Dec 1969 6:0 PM"){createdate="";} // new added by rafiq
-				 
-				 
-		taskDetail.append('<div class="message-body">' +
+			
+					
+					<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1&&$_SESSION['logged_in']['IS_ADMIN_VIEWONLY']==1) 
+					{
+					?>
+					taskDetail.append('<div class="message-body">' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_customer_name">Customer Name</label><input type="text" class="form-control" id="txt_customer_name" placeholder="Customer Name" value="' + data.CUSTOMER_NAME + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_invoice">Invoice No.</label><input type="text" class="form-control" id="txt_invoice" placeholder="Invoice" value="'+data.INVOICE_NUMBER+'" readonly="readonly" ></div></div>' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_category">Shipment Type</label><input type="text" class="form-control" id="txt_ship_category" placeholder="Shipment Category" value="' + data.SHIPMENT_CATEGORY + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_price">Price</label><input type="text" class="form-control" id="txt_price" placeholder="Price" value="'+data.SHIPMENT_TITLE+'" readonly="readonly" ></div></div>' +			
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_created_by">Creator</label><input type="text" class="form-control" id="txt_created_by" placeholder="Creator" value="'+data.FULL_NAME+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_created">Created on</label><input type="text" class="form-control" id="txt_created" placeholder="Created" value="'+createdate+'" readonly="readonly" ></div></div>' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_status">Shipment Status</label><input type="text" class="form-control" id="txt_ship_status" placeholder="Shipment Status" value="' + data.SHIPMENT_STATUS + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_final_status">Final Status</label><input type="text" class="form-control" id="txt_final_status" placeholder="Final Status" value="'+data.FINAL_STATUS+'" readonly="readonly" ></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_desc">Description</label><input type="text" class="form-control" id="txt_desc" placeholder="Description" value="'+data.SHIPMENT_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
+		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +'</div>'
+        );
+					<?php
+					}
+					else
+					{
+						?>
+					taskDetail.append('<div class="message-body">' +
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_customer_name">Customer Name</label><input type="text" class="form-control" id="txt_customer_name" placeholder="Customer Name" value="' + data.CUSTOMER_NAME + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_invoice">Invoice No.</label><input type="text" class="form-control" id="txt_invoice" placeholder="Invoice" value="'+data.INVOICE_NUMBER+'" readonly="readonly" ></div></div>' +
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_category">Shipment Type</label><input type="text" class="form-control" id="txt_ship_category" placeholder="Shipment Category" value="' + data.SHIPMENT_CATEGORY + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_price">Price</label><input type="text" class="form-control" id="txt_price" placeholder="Price" value="'+data.SHIPMENT_TITLE+'" readonly="readonly" ></div></div>' +			
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_created_by">Creator</label><input type="text" class="form-control" id="txt_created_by" placeholder="Creator" value="'+data.FULL_NAME+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_created">Created on</label><input type="text" class="form-control" id="txt_created" placeholder="Created" value="'+createdate+'" readonly="readonly" ></div></div>' +
@@ -4983,6 +5218,13 @@ function toTimestamp(strDate){
 			'<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;">'+strbuttons+''+strshipbuttions+''+strpaymentrec+'&nbsp;<span><button class="btn btn-danger btn-sm" id="btn_delShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Delete Shipment</button></span></div></div>' +		   
             '</div>'
         );
+					<?php
+					}
+					?>
+					
+					
+				 
+		
 		/*
 					
 						taskDetail.append('<div class="message-body">' +							
@@ -5047,7 +5289,7 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 					
 				//alert(data.MESSAGE);
 				
-				funshowUsersShipments(USER_ID);
+				funshowUsersShipmentsCustomers(USER_ID);
 				
 				
 		$('div#taskDetails div.message-body').attr("style","visibility:hidden; display:none");
@@ -5661,11 +5903,11 @@ function timeSince(date) {
   var lefttime = Math.floor(seconds) * (-1);
   if((lefttime/3600) > 1)
   {	
-  	return Math.floor(lefttime/3600)+ " Hours left";
+  	return ""; //Math.floor(lefttime/3600)+ " Hours left";
   }
   else
   {
-	 return Math.floor(lefttime/60)+ " Minutes left"; 
+	 return ""; //Math.floor(lefttime/60)+ " Minutes left"; 
   }
 }
 
@@ -11111,7 +11353,9 @@ window.addEventListener("click", function(event) {
   '<button class="btn btn-primary btn-sm" id="btn_submitAdvShipTask" type="submit" >Add Shipment Task</button></div></div><div class="col-md-2 mb-3"> </div></div></form></div>');
   
   
-  
+  $( "#CUSTOMER_NAME" ).autocomplete({	
+  source: customers
+});
    
     }
 

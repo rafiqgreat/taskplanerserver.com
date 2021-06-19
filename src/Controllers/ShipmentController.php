@@ -107,6 +107,44 @@ class ShipmentController extends ControllerBase
         }
     
 	}
+	
+	public function getCustomersList($request, $response)
+	{		
+        try {
+            $params = $request->getQueryParams();
+            if (!empty($params) ) {
+                //if (AuthValidatorController::validateAuth($this->db, $params[ParamKeys::AUTH_TOKEN], $params[ParamKeys::SESSION_ID])) {
+                    if ($params[ParamKeys::USER_ID] == "") {
+                        return $this->sendHTTPResponseError($response, Messages::MSG_ERR_PARAMS_VALUE_MISSING);
+                    } else {
+                        if ($this->db) {
+                            $customerSql = "SELECT CUSTOMER_NAME, COUNT(SHIPMENT_ID) AS frequency FROM `cor_shipments` GROUP BY CUSTOMER_NAME ORDER BY CUSTOMER_NAME";
+                            $customerStatement = $this->db->prepare($customerSql);                            
+                            $customerStatement->execute();
+                            $customers = $customerStatement->fetchAll(\PDO::FETCH_ASSOC);
+                            if ($customers) {
+								return $this->sendHttpResponseSuccess($response, $customers);
+								
+							} else {
+                                return $this->sendHttpResponseSuccess($response, 'Customers does not exist');
+                            }
+                        } else {
+                            return $this->sendHTTPResponseError($response, Messages::MSG_ERR_DB_CONNECTION);
+                        }
+                    }
+                /*} else {
+                    return $this->sendHTTPResponseError($response, Messages::MSG_ERR_AUTH_HTTP_PARAMS);
+                }*/
+            } else {
+                return $this->sendHTTPResponseError($response, Messages::MSG_ERR_HTTP_PARAMS);
+            }
+        } catch (\PDOException $e) {
+            return $this->sendHTTPResponseError($response, $e->getMessage()." | Line Number: ".$e->getLine());
+        }
+    
+	}
+ 
+	
     public function createShipment($request, $response, $arg) {
         try {
 				$params = $request->getParsedBody();
@@ -391,6 +429,55 @@ class ShipmentController extends ControllerBase
                                 } else {
                                     return $this->sendHttpResponseSuccess($response, $shipments);
                                 }
+                            } else {
+                                return $this->sendHttpResponseSuccess($response, 'User account does not exist');
+                            }
+                        } else {
+                            return $this->sendHTTPResponseError($response, Messages::MSG_ERR_DB_CONNECTION);
+                        }
+                    }
+                /*} else {
+                    return $this->sendHTTPResponseError($response, Messages::MSG_ERR_AUTH_HTTP_PARAMS);
+                }*/
+            } else {
+                return $this->sendHTTPResponseError($response, Messages::MSG_ERR_HTTP_PARAMS);
+            }
+        } catch (\PDOException $e) {
+            return $this->sendHTTPResponseError($response, $e->getMessage()." | Line Number: ".$e->getLine());
+        }
+    }
+
+	public function getShipmentUsersGroupCustomers($request, $response) {
+        try {
+            $params = $request->getQueryParams();
+            if (!empty($params) ) {
+                //if (AuthValidatorController::validateAuth($this->db, $params[ParamKeys::AUTH_TOKEN], $params[ParamKeys::SESSION_ID])) {
+                    if ($params[ParamKeys::USER_ID] == "" || $params[ParamKeys::CREATOR_ID] == "") {
+                        return $this->sendHTTPResponseError($response, Messages::MSG_ERR_PARAMS_VALUE_MISSING);
+                    } else {
+                        if ($this->db) {
+                            $userSql = "select USER_ID, SUPER_ADMIN, IS_SHIPPER FROM ptf_user_details WHERE USER_ID = :userId";
+                            $userStatement = $this->db->prepare($userSql);
+                            $userStatement->bindParam(":userId", $params[ParamKeys::USER_ID], \PDO::PARAM_STR);
+                            $userStatement->execute();
+                            $user = $userStatement->fetch(\PDO::FETCH_ASSOC);
+                            if ($user) {
+                                if($user['SUPER_ADMIN'] == 1) {
+                                    $shipmentSql = "SELECT CUSTOMER_NAME, COUNT(SHIPMENT_ID) AS total,SUM(SHIPMENT_TITLE) AS ptotal, COUNT(CASE WHEN FINAL_STATUS = 'PENDING' THEN 1 END) AS pending, SUM(CASE WHEN FINAL_STATUS = 'PENDING' THEN SHIPMENT_TITLE END) AS ppending, COUNT(CASE WHEN FINAL_STATUS = 'RECEIVED' THEN 1 END) AS received, SUM(CASE WHEN FINAL_STATUS = 'RECEIVED' THEN SHIPMENT_TITLE END) AS preceived FROM cor_shipments JOIN ptf_user_details ON ptf_user_details.USER_ID = cor_shipments.CREATOR_ID  WHERE cor_shipments.SHIPMENT_STATUS = 'SHIPPED' AND cor_shipments.CREATOR_ID = :creatorId GROUP BY CUSTOMER_NAME";
+									 $shipmentStatement = $this->db->prepare($shipmentSql);
+                                    $shipmentStatement->bindParam(":creatorId", $params[ParamKeys::CREATOR_ID], \PDO::PARAM_STR);									
+                                }elseif($user['SUPER_ADMIN'] == 0 && $user['IS_SHIPPER'] == 0) {
+                                    $shipmentSql = "SELECT CUSTOMER_NAME, COUNT(SHIPMENT_ID) AS total,SUM(SHIPMENT_TITLE) AS ptotal, COUNT(CASE WHEN FINAL_STATUS = 'PENDING' THEN 1 END) AS pending, SUM(CASE WHEN FINAL_STATUS = 'PENDING' THEN SHIPMENT_TITLE END) AS ppending, COUNT(CASE WHEN FINAL_STATUS = 'RECEIVED' THEN 1 END) AS received, SUM(CASE WHEN FINAL_STATUS = 'RECEIVED' THEN SHIPMENT_TITLE END) AS preceived FROM cor_shipments JOIN ptf_user_details ON ptf_user_details.USER_ID = cor_shipments.CREATOR_ID  WHERE cor_shipments.SHIPMENT_STATUS = 'SHIPPED' AND cor_shipments.CREATOR_ID = :creatorId GROUP BY CUSTOMER_NAME";
+                                    $shipmentStatement = $this->db->prepare($shipmentSql);
+                                    $shipmentStatement->bindParam(":creatorId", $params[ParamKeys::CREATOR_ID], \PDO::PARAM_STR);
+                                } else {
+                                    $shipmentSql = "SELECT cor_shipments.*, MOBILE_NUMBER, EMAIL_ADDRESS, FULL_NAME, timestampdiff(DAY,FROM_UNIXTIME(cor_shipments.CREATED_DATE),DATE_ADD(NOW(), INTERVAL 1 HOUR)) as DAYS  FROM cor_shipments JOIN ptf_user_details ON ptf_user_details.USER_ID = cor_shipments.CREATOR_ID  WHERE cor_shipments.SHIPMENT_CATEGORY = 'RAFIQ' AND cor_shipments.SHIPMENT_STATUS = 'SHIPPED' AND cor_shipments.CREATOR_ID = :creatorId ORDER BY DAYS DESC";
+                                    $shipmentStatement = $this->db->prepare($shipmentSql);
+                                    $shipmentStatement->bindParam(":creatorId", $params[ParamKeys::CREATOR_ID], \PDO::PARAM_STR);
+                                }
+                                $shipmentStatement->execute();
+                                $shipments = $shipmentStatement->fetchAll(\PDO::FETCH_ASSOC);
+								return $this->sendHttpResponseSuccess($response, $shipments);																	
                             } else {
                                 return $this->sendHttpResponseSuccess($response, 'User account does not exist');
                             }

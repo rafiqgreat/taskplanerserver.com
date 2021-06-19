@@ -39,6 +39,16 @@ class ChangeStatusOfRepeatedTasks  extends ControllerBase
      */
     public function command($args)
     {
+		/*************** Start Code Query for setting Null value of DUE_DATE_DT to DUE_DATE not null date value ***************/
+		$rQry = "UPDATE cor_project_tasks SET DUE_DATE_DT = DATE_FORMAT(FROM_UNIXTIME(DUE_DATE), '%Y-%m-%d %H:%i:%s') WHERE DUE_DATE_DT IS NULL AND REPEAT_INTERVAL != '' AND DUE_DATE != 0";
+		$this->db->beginTransaction();
+        $tasksStatement = $this->db->prepare($rQry);
+        $tasksStatement->execute();
+        $this->db->commit();		
+		
+		/*************** End Code Query for setting Null value of DUE_DATE_DT to DUE_DATE not null date value ***************/
+		
+		
         // Access items in container
         $settings = $this->container->get('settings');
 
