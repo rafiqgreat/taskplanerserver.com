@@ -242,12 +242,6 @@ class ControllerBase extends JsonUtil
 
         return $date->getTimestamp();
     }
-	 public function convertToTimestampRafiq($date) {
-		 return $timestamp = strtotime($date);        
-    }
-	
-	
-	//date 
 
     public function convertTimestampToDate($t) {
         $date = new \DateTime();
@@ -405,12 +399,12 @@ class ControllerBase extends JsonUtil
         $ranAt = $this->convertTimestampToDate($this->getCurrentTimestamp());
 
         $this->db->beginTransaction();
-
+		$ids = implode(',',$ids);
         $statementCronLog = $this->db->prepare('INSERT INTO cor_cron_log (CRON_TITLE, RAN_AT, TASKS_UPDATED, TASK_IDS) VALUES(:cronTitle, :ranAt, :taskUpdated, :taskIds)');
         $statementCronLog->bindParam(":cronTitle", $title, \PDO::PARAM_STR);
         $statementCronLog->bindParam(":ranAt", $ranAt, \PDO::PARAM_STR);
         $statementCronLog->bindParam(":taskUpdated", $taskCount, \PDO::PARAM_STR);
-        $statementCronLog->bindParam(":taskIds", implode(',',$ids), \PDO::PARAM_STR);
+        $statementCronLog->bindParam(":taskIds", $ids, \PDO::PARAM_STR);
         $statementCronLog->execute();
 
         $this->db->commit();

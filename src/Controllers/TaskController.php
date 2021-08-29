@@ -14,6 +14,8 @@ use Constants\ ParamKeys;
 use Psr\ Container\ ContainerInterface;
 use Validators\ AuthValidatorController;
 use Utils\ PushNotifications as Notification;
+use DateTime;
+use DateTimeZone;
 
 class TaskController extends ControllerBase {
 	protected $container;
@@ -559,8 +561,8 @@ class TaskController extends ControllerBase {
 						$tasksStatement->bindParam( ":status", $params[ ParamKeys::STATUS ], \PDO::PARAM_STR );
 						$tasksStatement->execute();
 						if ( $this->db->commit() ) {
-							if ( ParamKeys::STATUS != 'CLOSED' ) {
-								if ( ParamKeys::STATUS == 'OPEN' )
+							if ( $params[ParamKeys::STATUS] != 'CLOSED' ) {
+								if ( $params[ParamKeys::STATUS] == 'OPEN' )
 									$statementUser = $this->db->prepare( 'select * from ' . $this->getTasks() . ' JOIN ' . $this->getUserDetails() . ' ON ' . $this->getUserDetails() . '.' . ParamKeys::USER_ID . ' = ' . $this->getTasks() . '.' . ParamKeys::ASSIGNED_ID . ' where TASK_ID = :taskId' );
 								else
 									$statementUser = $this->db->prepare( 'select * from ' . $this->getTasks() . ' JOIN ' . $this->getUserDetails() . ' ON ' . $this->getUserDetails() . '.' . ParamKeys::USER_ID . ' = ' . $this->getTasks() . '.' . ParamKeys::CREATOR_ID . ' where TASK_ID = :taskId' );
@@ -568,7 +570,7 @@ class TaskController extends ControllerBase {
 								$statementUser->bindParam( ":taskId", $params[ ParamKeys::TASK_ID ], \PDO::PARAM_STR );
 								$statementUser->execute();
 								$userData = $statementUser->fetch( \PDO::FETCH_ASSOC );
-								if ( ParamKeys::STATUS == 'OPEN' ) {
+								if ( $params[ParamKeys::STATUS] == 'OPEN' ) {
 									$senderId = $userData[ 'CREATOR_ID' ];
 									$receiverId = $userData[ 'ASSIGNED_ID' ];
 								} else {
@@ -577,6 +579,24 @@ class TaskController extends ControllerBase {
 								}
 								$device_tokens[] = $this->getDeviceToken( $userData[ 'USER_ID' ] );
 								$this->sendNotification( $senderId, $receiverId, $params[ ParamKeys::TASK_ID ], 'task', 'STATUS_CHANGED', $device_tokens, $params[ ParamKeys::STATUS ] );
+								
+								
+								/****************/
+								if($params[ParamKeys::STATUS] == 'COMPLETED')
+								{									
+									if($userData['REPEAT_INTERVAL'] != 7)
+									{
+										$this->_update_task_duedate($params[ ParamKeys::TASK_ID ]);
+									}
+									else
+									{
+										$this->_update_task_duedate_month($params[ ParamKeys::TASK_ID ]);
+									}
+									
+								}
+								
+								
+								/****************/
 
 							}
 
@@ -598,6 +618,147 @@ class TaskController extends ControllerBase {
 		}
 	}
 
+	    public function _update_task_duedate($task_id) {
+        $status = 'OPEN';
+        $days = array('0' => 'monday', '1' => 'tuesday', '2' => 'wednesday', '3' => 'thursday', '4' => 'friday', '5' => 'saturday', '6' => 'sunday');
+        $today = date('l'); // full name of day as Monday, Tuesday ...
+        $dayIndex = array_search(strtolower($today), $days); // having todays index or repeat day today index
+
+        $taskSql = "SELECT * FROM ". $this->getTasks() . " WHERE TASK_ID = :task_id ";
+		//echo  "SELECT * FROM ". $this->getTasks() . " WHERE TASK_ID = ".$task_id.'<hr />';
+        $tasksStatement = $this->db->prepare($taskSql);
+        $tasksStatement->bindParam(":task_id", $task_id);
+        $tasksStatement->execute();
+        $task = $tasksStatement->fetch(\PDO::FETCH_ASSOC);
+        if($task) {			
+			//echo '<hr />DUE_DATE_DT:'.$task['DUE_DATE_DT'].'<hr />';
+            
+            $extractTime = explode(' ', $task['DUE_DATE_DT']);
+			$extractDate = $extractTime[0];
+            $interval = explode(',', $task['REPEAT_INTERVAL']); // task all intervals in array 
+            sort($interval);
+		
+			$nextDueDate = '';
+				
+			switch($task['REPEAT_INTERVAL'])
+			{
+				case '0,1,2,3,4,5,6,7':
+					$nextDueDate = date('Y-m-d', strtotime($extractDate. ' +1 day')) . ' ' . $extractTime[1];
+				break;
+				case '0,1,2,3,4,5,6':
+						$nextDueDate = date('Y-m-d', strtotime($extractDate. ' +1 day')) . ' ' . $extractTime[1];
+					break;								
+			}
+			//echo '<hr />interval:';
+			//print_r($interval);
+			if($nextDueDate == '')
+			{
+				$found = 0;				
+				foreach($interval as $key=>$val){					
+					if($val > $dayIndex )
+					{
+						$found = 1;
+						$next = $interval[$key];
+						break;
+					}					
+				}
+				if($found ==0)
+				{
+					$next = $interval[0];
+				}	
+				//echo 'next:'.$next .' === day[next]:'. $days[$next];
+				$nextDueDate = date('Y-m-d', strtotime('next ' . $days[$next])) . ' ' . $extractTime[1];				
+			}
+			
+			
+			
+			
+			//$dt = \DateTime::CreateFromFormat('d-m-Y H:i:s', $nextDueDate);
+			/*$timezonex = "America/Boise";
+			if (date_default_timezone_get()) {
+    			$timezonex = date_default_timezone_get();
+			}
+			$timezonez = new DateTimeZone($timezonex);*/
+			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate, $timezonez);
+			$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+			
+			//echo '<hr />dt from DateTime::CreateFromFormat :'.$dt->getTimestamp().'<hr />';
+            $params = array(
+                'DUE_DATE'      => $dt->getTimestamp(),
+                'DUE_DATE_DT'   => $nextDueDate,
+                'STATUS'        => 'OPEN',
+                'TASK_ID'       => $task['TASK_ID']
+            );
+			//print_r($params);
+			//echo '<=================';
+            //die();
+			$this->_update_task($params);
+			
+        }
+    }
+
+
+    public function _update_task_duedate_month($task_id) {
+
+        $status = 'OPEN';
+
+        $taskSql = "SELECT * FROM ". $this->getTasks() . " WHERE TASK_ID = :task_id";
+        $tasksStatement = $this->db->prepare($taskSql);
+        $tasksStatement->bindParam(":task_id", $task_id);
+        $tasksStatement->execute();
+        $task = $tasksStatement->fetch(\PDO::FETCH_ASSOC);
+
+        if($task) {
+            $extractTime = explode(' ', $task['DUE_DATE_DT']);
+			
+			$datedtx = strtotime($extractTime[0]);
+			
+            $nextDueDate = date('Y-m-d', strtotime('+1 month',$datedtx)) . ' ' . $extractTime[1];
+           
+			
+			
+			
+			
+			//$nextDueDateTs = $this->convertToTimestamp($nextDueDate);
+			//date_default_timezone_set("Asia/Karachi");
+			
+			//$dt = \DateTime::CreateFromFormat('d-m-Y H:i:s', $nextDueDate);
+			//$timezonex = "America/Boise";
+			//if (date_default_timezone_get()) {
+    			//$timezonex = date_default_timezone_get();
+			//}
+			//$timezonez = new DateTimeZone($timezonex);
+			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate, $timezonez);
+			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+			
+$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+			
+			//echo '<hr />dt from DateTime::CreateFromFormat :'.$dt->getTimestamp().'<hr />';
+            $params = array(
+                'DUE_DATE'      => $dt->getTimestamp(),
+                'DUE_DATE_DT'   => $nextDueDate,
+                'STATUS'        => 'OPEN',
+                'TASK_ID'       => $task['TASK_ID']
+            );
+			//print_r($params);
+			//echo '<=================';
+            //die();
+			$this->_update_task($params); 
+        }
+    }
+
+	 public function _update_task($params) {
+        $this->db->beginTransaction();
+
+        $tasksStatement = $this->db->prepare('UPDATE ' . $this->getTasks() . ' set DUE_DATE_DT = :dueDateDt, DUE_DATE = :dueDate, TASK_STATUS = :status, UPDATED_DATE = ' . $this->getCurrentTimestamp() . ' WHERE TASK_ID = :taskId');
+        $tasksStatement->bindParam(":dueDate", $params['DUE_DATE'], \PDO::PARAM_STR);
+        $tasksStatement->bindParam(":dueDateDt", $params['DUE_DATE_DT'], \PDO::PARAM_STR);
+        $tasksStatement->bindParam(":status", $params['STATUS'], \PDO::PARAM_STR);
+        $tasksStatement->bindParam(":taskId", $params['TASK_ID'], \PDO::PARAM_STR);
+        $tasksStatement->execute();
+
+        $this->db->commit();
+    }
 	/**
 	 * Description: Update tasks
 	 */
@@ -613,10 +774,12 @@ class TaskController extends ControllerBase {
 				} else {
 					if ( $this->db ) {
 						$this->db->beginTransaction();
-						$tasksStatement = $this->db->prepare( 'UPDATE ' . $this->getTasks() . ' set ASSIGNED_ID = :assignedId, TASK_TITLE = :taskTitle, TASK_DESCRIPTION = :taskDesc, DUE_DATE = :dueDate, REPEAT_INTERVAL = :repeatInterval, CC = :cc  where TASK_ID = :taskId' );
+						$tasksStatement = $this->db->prepare( 'UPDATE ' . $this->getTasks() . ' set ASSIGNED_ID = :assignedId, TASK_TITLE = :taskTitle, TASK_DESCRIPTION = :taskDesc, DUE_DATE_DT = :dueDateDt, DUE_DATE = :dueDate, REPEAT_INTERVAL = :repeatInterval, CC = :cc  where TASK_ID = :taskId' );
 						$tasksStatement->bindParam( ":taskTitle", $params[ ParamKeys::TASK_TITLE ], \PDO::PARAM_STR );
 						$tasksStatement->bindParam( ":taskDesc", $params[ ParamKeys::TASK_DESCRIPTION ], \PDO::PARAM_STR );
-						$tasksStatement->bindParam( ":dueDate", $params[ ParamKeys::DUE_DATE ], \PDO::PARAM_STR );
+						$tasksStatement->bindParam( ":dueDateDt", $params[ ParamKeys::DUE_DATE_DT ], \PDO::PARAM_STR );
+						$newdt = strtotime($params[ ParamKeys::DUE_DATE_DT ]);						
+						$tasksStatement->bindParam( ":dueDate", $newdt, \PDO::PARAM_STR );
 						$tasksStatement->bindParam( ":repeatInterval", $params[ ParamKeys::REPEAT_INTERVAL ], \PDO::PARAM_STR );
 						//$tasksStatement->bindParam(":creatorId", $params[ParamKeys::CREATOR_ID], \PDO::PARAM_STR);
 						$tasksStatement->bindParam( ":assignedId", $params[ ParamKeys::ASSIGNED_ID ], \PDO::PARAM_STR );
@@ -817,7 +980,9 @@ class TaskController extends ControllerBase {
 	/**
 	 * Description: fetch all user's tasks of due today 24 hours and all types
 	 */
-	public
+	
+
+public
 	function fetchDueTasks( $request, $response ) {
 		try {
 			// $params = $request->getQueryParams();
@@ -831,54 +996,61 @@ class TaskController extends ControllerBase {
 						if ( isset( $params[ ParamKeys::STATUS ] ) && $params[ ParamKeys::STATUS ] != '' ) {
 							$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND TASK_STATUS = :status";
 						} elseif ( isset( $params[ ParamKeys::CURRENT_DATE ] ) ) {
-							if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "ME" ) {
-								$taskSql = "select task.*, ud.FULL_NAME from cor_project_tasks task, ptf_user_details ud where task.CREATOR_ID = ud.USER_ID AND task.CREATOR_ID != :userId AND task.ASSIGNED_ID = :userId AND task.DUE_DATE <= :dueDate AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE != 0 AND task.PROJECT_ID IS NULL";
+							
+						if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "ME" ) {
+								$taskSql = "select task.*, ud.FULL_NAME from cor_project_tasks task, ptf_user_details ud where task.CREATOR_ID = ud.USER_ID AND task.CREATOR_ID != :userId AND task.ASSIGNED_ID = :userId AND task.DUE_DATE_DT <= ':dueDate'  AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE_DT != '1970-01-01 00:00:00' AND task.PROJECT_ID IS NULL";
 
 								//die($taskSql);
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONAL" ) {
-								$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE <= :dueDate AND TASK_STATUS != 'COMPLETED' AND DUE_DATE != 0 AND PROJECT_ID IS NULL";
+								$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE_DT <= ':dueDate'  AND TASK_STATUS != 'COMPLETED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND PROJECT_ID IS NULL";
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "ASSIGNEDOTHER" ) {
-								$taskSql = "select task.*, ud.FULL_NAME from cor_project_tasks task, ptf_user_details ud where task.ASSIGNED_ID = ud.USER_ID AND task.CREATOR_ID = :userId AND task.ASSIGNED_ID != :userId AND task.DUE_DATE <= :dueDate AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE != 0 AND cor_project_tasks.PROJECT_ID IS NULL";
+								$taskSql = "select task.*, ud.FULL_NAME from cor_project_tasks task, ptf_user_details ud where task.ASSIGNED_ID = ud.USER_ID AND task.CREATOR_ID = :userId AND task.ASSIGNED_ID != :userId AND task.DUE_DATE_DT <= ':dueDate'  AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE_DT != '1970-01-01 00:00:00' AND cor_project_tasks.PROJECT_ID IS NULL";
 								//die($taskSql);
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONALDUE" ) {
-								$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE <= :dueDate AND cor_project_tasks.TASK_STATUS != 'COMPLETED' AND cor_project_tasks.DUE_DATE != 0 AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
-
+								$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE_DT <= ':dueDate'  AND cor_project_tasks.TASK_STATUS != 'COMPLETED' AND cor_project_tasks.DUE_DATE_DT != '1970-01-01 00:00:00' AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
 
 
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONALCTR" ) {
-								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE <= :dueDate AND TASK_STATUS != 'COMPLETED' AND DUE_DATE != 0 AND cor_project_tasks.PROJECT_ID IS NULL";
+								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE_DT <= ':dueDate'  AND TASK_STATUS != 'COMPLETED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND cor_project_tasks.PROJECT_ID IS NULL";
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "MEDUE" ) {
-								$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE <= :dueDate AND TASK_STATUS != 'COMPLETED' AND DUE_DATE != 0 AND REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
+								$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE_DT <= ':dueDate'  AND TASK_STATUS != 'COMPLETED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONALREP" ) {
-								$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE <= :dueDate AND TASK_STATUS != 'COMPLETED' AND TASK_STATUS != 'CLOSED' AND DUE_DATE != 0 AND REPEAT_INTERVAL != '' AND cor_project_tasks.PROJECT_ID IS NULL";
+								$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where CREATOR_ID = :userId AND ASSIGNED_ID = :userId AND DUE_DATE_DT <= ':dueDate'  AND TASK_STATUS != 'COMPLETED' AND TASK_STATUS != 'CLOSED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND REPEAT_INTERVAL != '' AND cor_project_tasks.PROJECT_ID IS NULL";
+								
+								
+								//die("SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where CREATOR_ID = ".$params[ ParamKeys::USER_ID ]." AND ASSIGNED_ID = ".$params[ ParamKeys::USER_ID ]." AND DUE_DATE_DT <= '".$params[ ParamKeys::CURRENT_DATE ]."' AND TASK_STATUS != 'COMPLETED' AND TASK_STATUS != 'CLOSED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND REPEAT_INTERVAL != '' AND cor_project_tasks.PROJECT_ID IS NULL");
+																
+								//CURRENT_DATE
+								
+								
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "MECTR" ) {
-								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks task where task.CREATOR_ID = :assignMeID AND task.CREATOR_ID != :userId AND task.ASSIGNED_ID = :userId AND task.DUE_DATE <= :dueDate AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE != 0 AND task.PROJECT_ID IS NULL";
+								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks task where task.CREATOR_ID = :assignMeID AND task.CREATOR_ID != :userId AND task.ASSIGNED_ID = :userId AND task.DUE_DATE_DT <= ':dueDate'  AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE_DT != '1970-01-01 00:00:00' AND task.PROJECT_ID IS NULL";
 							} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "OTHERCTR" ) {
-								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks task where task.CREATOR_ID = :userId AND task.ASSIGNED_ID != :userId AND task.ASSIGNED_ID = :assignMeID AND task.DUE_DATE <= :dueDate AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE != 0 AND task.PROJECT_ID IS NULL";
+								$taskSql = "SELECT COUNT(*) as total, COUNT(IF(REPEAT_INTERVAL='',1,null)) as nonrepeated, COUNT(IF(REPEAT_INTERVAL !='',1,null)) as repeated FROM cor_project_tasks task where task.CREATOR_ID = :userId AND task.ASSIGNED_ID != :userId AND task.ASSIGNED_ID = :assignMeID AND task.DUE_DATE_DT <= ':dueDate'  AND task.TASK_STATUS != 'COMPLETED' AND task.DUE_DATE_DT != '1970-01-01 00:00:00' AND task.PROJECT_ID IS NULL";
 
 							} else {
-								$taskSql = "select * from " . $this->getTasks() . " where ASSIGNED_ID = :userId AND DUE_DATE <= :dueDate AND TASK_STATUS != 'COMPLETED' AND DUE_DATE != 0 AND cor_project_tasks.PROJECT_ID IS NULL";
+								$taskSql = "select * from " . $this->getTasks() . " where ASSIGNED_ID = :userId AND DUE_DATE_DT <= ':dueDate'  AND TASK_STATUS != 'COMPLETED' AND DUE_DATE_DT != '1970-01-01 00:00:00' AND cor_project_tasks.PROJECT_ID IS NULL";
 								//die($taskSql);
 							}
 						} elseif ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === 'ASSIGNED' ) {
 							$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID != :userId AND ASSIGNED_ID = :userId AND cor_project_tasks.PROJECT_ID IS NULL ORDER BY TASK_ID DESC";
 						}
 						else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "METASKCTR" ) {
-							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
+							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
  FROM cor_project_tasks task where task.CREATOR_ID = :assignMeID AND task.CREATOR_ID != :userId AND task.ASSIGNED_ID = :userId AND task.PROJECT_ID IS NULL";
 						} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "OTHERTASKCTR" ) {
-							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
+							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
  FROM cor_project_tasks task where task.CREATOR_ID = :userId AND task.ASSIGNED_ID != :userId AND task.ASSIGNED_ID = :assignMeID AND task.PROJECT_ID IS NULL";
 						} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "MYPERSONALCTR" ) {
-							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
+							$taskSql = "SELECT COUNT(*) as total, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT=0),1,NULL)) as todo, COUNT(IF((REPEAT_INTERVAL=''AND DUE_DATE_DT!=0),1,NULL)) as nonrepeated, COUNT(IF((REPEAT_INTERVAL!=''),1,NULL)) as repeated
  FROM cor_project_tasks task where task.CREATOR_ID = :userId AND task.ASSIGNED_ID = :userId AND task.PROJECT_ID IS NULL";
 							//die($taskSql );
 						} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "MYPERSONALREP" ) {
 							$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.REPEAT_INTERVAL != '' AND cor_project_tasks.PROJECT_ID IS NULL";
 						} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONALNOREP" ) {
-							$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE != 0 AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
+							$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE_DT != '1970-01-01 00:00:00' AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL";
 						} else if ( isset( $params[ ParamKeys::TYPE ] ) && $params[ ParamKeys::TYPE ] === "PERSONALTODO" ) {
-							$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE = 0  AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL  ORDER BY cor_project_tasks.DUE_DATE ASC";
+							$taskSql = "SELECT cor_project_tasks.*, IF(cor_notification_status.STATUS IS NULL, 1, cor_notification_status.STATUS) as STATUS  FROM cor_project_tasks left join cor_notification_status on (cor_project_tasks.TASK_ID = cor_notification_status.TASK_ID ) where cor_project_tasks.CREATOR_ID = :userId AND cor_project_tasks.ASSIGNED_ID = :userId AND cor_project_tasks.DUE_DATE_DT = 0  AND cor_project_tasks.REPEAT_INTERVAL = '' AND cor_project_tasks.PROJECT_ID IS NULL  ORDER BY cor_project_tasks.DUE_DATE_DT ASC";
 						} else {
 							$taskSql = "select * from " . $this->getTasks() . " where CREATOR_ID = :userId AND cor_project_tasks.PROJECT_ID IS NULL";
 						}
@@ -896,9 +1068,11 @@ class TaskController extends ControllerBase {
 
 						if ( isset( $params[ ParamKeys::CURRENT_DATE ] ) && $params[ ParamKeys::CURRENT_DATE ] !== "" ) {
 
-							$datenew = strtotime( "+2 day", strtotime( $params[ ParamKeys::CURRENT_DATE ] ) );
-							$tasksStatement->bindParam( ":dueDate", $datenew, \PDO::PARAM_STR );
-
+							//$datenew = strtotime( "+2 day", strtotime( $params[ ParamKeys::CURRENT_DATE ] ) );
+							
+							
+							$tasksStatement->bindParam( ":dueDate", $params[ ParamKeys::CURRENT_DATE ], \PDO::PARAM_STR );
+							
 						}
 						//die(date("Y-m-d H:i:s",$datenew));
 
@@ -940,7 +1114,7 @@ class TaskController extends ControllerBase {
 			return $this->sendHTTPResponseError( $response, $e->getMessage() . " | Line Number: " . $e->getLine() );
 		}
 	}
-
+	
 	/**
 	 * Description: fetch all user's projects and its tasks and sub tasks
 	 */
@@ -1204,7 +1378,7 @@ class TaskController extends ControllerBase {
 							//$taskSql = "select * from ". $this->getProjectTaskVW() . " where TASK_ID = :objectId";
 							$taskSql = "select PROJECT_ID, TASK_ID, TASK_TITLE, TASK_DESCRIPTION, ASSIGNED_ID, CC, 
                                                     FULL_NAME, MOBILE_NUMBER as USER_NAME, PROFILE_FILENAME, CREATOR_ID,
-                                                     CREATED_DATE, DUE_DATE, REPEAT_INTERVAL, FILE_PATH, TASK_STATUS
+                                                     CREATED_DATE, DUE_DATE, DUE_DATE_DT, REPEAT_INTERVAL, FILE_PATH, TASK_STATUS
                                 from " . $this->getProjectTasks() . " LEFT JOIN " . $this->getUserDetails() . " ON " . $this->getUserDetails() . ".USER_ID = " . $this->getProjectTasks() . ".ASSIGNED_ID WHERE TASK_ID = :objectId";
 
 
@@ -1219,7 +1393,7 @@ class TaskController extends ControllerBase {
 						} elseif ( $params[ ParamKeys::OBJECT_TYPE ] == "chats" ) {
 
 							$taskSql = "select cor_project_tasks.PROJECT_ID, cor_project_tasks.TASK_ID, TASK_TITLE, TASK_DESCRIPTION, ASSIGNED_ID, FULL_NAME, 
-                                                   MOBILE_NUMBER as USER_NAME, PROFILE_FILENAME, CREATOR_ID, CREATED_DATE, DUE_DATE, REPEAT_INTERVAL, 
+                                                   MOBILE_NUMBER as USER_NAME, PROFILE_FILENAME, CREATOR_ID, CREATED_DATE, DUE_DATE, DUE_DATE_DT, REPEAT_INTERVAL, 
                                                    FILE_PATH, TASK_STATUS 
                                             from cor_notifications left join cor_chats on cor_chats.CHAT_ID = cor_notifications.OBJECT_ID 
                                             left join cor_project_tasks ON cor_project_tasks.TASK_ID = cor_chats.TASK_ID 
@@ -2371,7 +2545,8 @@ ORDER BY CREATED_AT DESC LIMIT 5";
 						$taskSql = "SELECT * FROM " . $this->getTasks() . " WHERE PROJECT_ID IS NOT NULL AND FROM_UNIXTIME('DUE_DATE','%Y-%m-%d') <= :dueDate AND DUE_DATE != 0 AND (TASK_STATUS != 'COMPLETED' AND TASK_STATUS != 'CLOSED') AND ASSIGNED_ID = :userId";
 						$tasksStatement = $this->db->prepare( $taskSql );
 						$tasksStatement->bindParam( ":userId", $params[ ParamKeys::USER_ID ], \PDO::PARAM_STR );
-						$tasksStatement->bindParam( ":dueDate", date( 'Y-m-d' ), \PDO::PARAM_STR );
+						$curdate = date("Y-m-d");
+						$tasksStatement->bindParam( ":dueDate", $curdate, \PDO::PARAM_STR );
 						$tasksStatement->execute();
 						$tasks = $tasksStatement->fetchAll( \PDO::FETCH_ASSOC );
 
@@ -2906,7 +3081,7 @@ ORDER BY CREATED_AT DESC LIMIT 5";
 		}
 
 	}
-
+  
 	public
 	function searchTasks( $request, $response ) {
 		try {

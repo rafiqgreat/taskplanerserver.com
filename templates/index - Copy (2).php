@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
     <meta charset="utf-8">
     <!--  This file has been downloaded from https://bootdey.com  -->
     <!--  All snippets are MIT license https://bootdey.com/license -->
@@ -10,9 +9,8 @@
     <link rel="icon" href="icon2.gif" type="image/gif" sizes="16x16">
     <link href="assets/dist/filepond.css" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <link href="http://netdna.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/css/styles.css" rel="stylesheet">
-    <script src="assets/dist/filepond.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/styles.css" rel="stylesheet">   
     <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
     <link rel="stylesheet" href="//cdn.materialdesignicons.com/3.7.95/css/materialdesignicons.min.css">
 
@@ -70,52 +68,119 @@ var loggedMobile = '';
 var names = '';
 	
 	 
- $(document).ready(function() {		
-
-
-
-
-		 $.ajax({
-	url: '<?php echo $url; ?>api2/projects/fetch-member-projects?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>',
-            type: 'GET',
-            dataType: 'json',
+$(document).ready( function() 
+{		
+// for notificaiton popup window right bottom
+checknotif();
+setInterval(function(){ checknotif(); }, 1800000);
+function checknotif() {
+	if (!Notification) {
+		$('body').append('<h4 style="color:red">*Browser does not support Web Notification</h4>');
+		return;
+	}
+	if (Notification.permission !== "granted")
+	{
+		//console.log('No Permission');
+		Notification.requestPermission();
+	}
+	else {
+		$.ajax(
+		{
+			url : "<?php echo $url; ?>api2/tasks/get-popnotifications?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>",
+			type: "GET",
+			 dataType: 'json',
             cache: false,
-            success: function (data) {                
-         submenuMyProjects.empty();
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
-			document.getElementById("projectTaskCount").innerHTML = data.length;
-        } else {
-             document.getElementById("projectTaskCount").innerHTML = '0';
-			
-        }
-                  
-            }
-        }); 
-	 
+			success: function(data)
+			{
+				 var data = JSON.parse(data.DATA);
+				 //console.log(data);
+				if(data.result == true){
+					var data_notif = data.notif;
+					console.log(data_notif);
+					for (var i = data_notif.length - 1; i >= 0; i--) {
+						var theurl = data_notif[i]['url'];
+						var notifikasi = new Notification(data_notif[i]['title'], {
+							icon: data_notif[i]['icon'],
+							body: data_notif[i]['msg'],
+						});
+						notifikasi.onclick = function () {
+							window.open(theurl); 
+							//notifikasi.close();     
+						};
+						//setTimeout(function(){ notifikasi.close(); }, 3000000);
+					};
+				}else{
 
-    	
-	
-	 
-	  names = new Array();
-	  $.ajax({
-        url: '<?php echo $url; ?>api2/projects/get-registered-users',
-        type: 'POST',
-		contentType:'application/x-www-form-urlencoded',
-        data:"STATUS=ACTIVE",		
-        success: function(data) {                       
-       if(data.STATUS !== 'ERROR') {
+				}
+			},
+			error: function(jqXHR, textStatus, errorThrown)
+			{
+
+			}
+		});	
+
+	} };
+
+//COUNTER - Fetch project members
+$.ajax({
+	url: '<?php echo $url; ?>api2/projects/fetch-member-projects?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>',
+	type: 'GET',
+    dataType: 'json',
+    cache: false,
+    success: function (data) 
+	{                
+    	submenuMyProjects.empty();
+       	if(data.STATUS !== 'ERROR') 
+		{
+			var data = JSON.parse(data.DATA);
+			document.getElementById("projectTaskCount").innerHTML = data.length;
+        } 
+		else 
+		{
+             document.getElementById("projectTaskCount").innerHTML = '0';
+        }
+	}
+}); 
+/******* for customers listing ***********************/
+	customers = new Array();
+$.ajax({
+	url: '<?php echo $url; ?>api2/shipments/customers?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>',
+   type: 'GET',
+    dataType: 'json',
+    cache: false,		
+    success: function(data) 
+	{                       
+       if(data.STATUS !== 'ERROR') 
+	   {
 		   var d = JSON.parse(data.DATA);		   				
-		   
 		    for(var i = 0; i < d.length; i++)
 			{
-				//console.log(d[i]);
+				customers[i] = d[i].CUSTOMER_NAME;
+			}
+	   }                  
+	}
+});
+		
+
+/*************************/
+names = new Array();
+$.ajax({
+	url: '<?php echo $url; ?>api2/projects/get-registered-users',
+    type: 'POST',
+	contentType:'application/x-www-form-urlencoded',
+    data:"STATUS=ACTIVE",		
+    success: function(data) 
+	{                       
+       if(data.STATUS !== 'ERROR') 
+	   {
+		   var d = JSON.parse(data.DATA);		   				
+		    for(var i = 0; i < d.length; i++)
+			{
 				names[i] = d[i].FULL_NAME+'('+d[i].MOBILE_NUMBER+')';
 			}
-		   
-		   }                  
-            }
-		});
+	   }                  
+	}
+});
 		
 $( "#autocomplete" ).autocomplete({	
   source: names
@@ -590,69 +655,6 @@ if(data[i].TASK_STATUS == 'COMPLETED')
 	return false;
 })
 
-
-
-<?php /*?>
-	 $.ajax({
-        url: '<?php echo $url; ?>api2/projects/get-registered-users',
-        type: 'POST',
-		contentType:'application/x-www-form-urlencoded',
-        data:"STATUS=DISABLED",		
-        success: function(data) {                       
-       if(data.STATUS !== 'ERROR') {
-		   console.log(data);
-		   var d = JSON.parse(data.DATA);		   				
-		   }                  
-            }
-		});
-		
-		
-		
-		///////////////
-		 $.ajax({
-	url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTASSIGNEDOTHERDD&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
-            type: 'GET',
-            dataType: 'json',
-            cache: false,
-            success: function (data) {                
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
-			//console.log(data);
-  			if(data.length == 0){
-				document.getElementById("assignOtherTaskCountDD").innerHTML = "0";//
-			}
-			else {
-                 document.getElementById("assignOtherTaskCountDD").innerHTML = data[0].noOfTask;
-				 
-				 
-				}
-        } 
-       }
-      }); 
-		
-
-
-		var query = 'rafiq';
-		$.ajax({
-				url: '<?php echo $url; ?>api2/projects/get-registered-users-search?STATUS=ACTIVE&FULL_NAME=' + query,
-				type: 'GET',
-				dataType: 'json',
-				cache: false,
-				success: function(data) {                       
-			   if(data.STATUS !== 'ERROR') {
-				   
-								result($.map(data, function (item) {
-									return item;
-								}));
-								
-				   }                  
-					}
-			});
-	
-*/ ?>	
-
-
-	
 var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
 	 $.ajax({
         url: '<?php echo $url; ?>api2/projects/get-user-mobile',
@@ -667,114 +669,206 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
             }
 		});	
 
-	 
-	 //get-registered-users
-	 
-		 var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PERSONALCTR&CURRENT_DATE=<?php echo date('Y-m-d'); ?>';
-        
+///////////////////////////////////////
+///////////// COUNTERS ////////////////
+///////////////////////////////////////	 
+// COUNTER - ASSIGNED ME TASKS DD
+var totalcounter = 0;
+	 new Promise((resolve,reject)=>{
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		 
 		$.ajax({
-	 url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTASSIGNMEDD&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
-            type: 'GET',
-            dataType: 'json',
-            cache: false,
-            success: function (data) {                
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
 			
-  			if(data.length == 0){
+	url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTASSIGNMEDD&CURRENT_DATE='+dateStr2,
+    type: 'GET',
+    dataType: 'json',
+    cache: false,
+    success: function (data) 
+	{                
+       if(data.STATUS !== 'ERROR') 
+	   {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+  			if(data.length == 0)
+			{
 				document.getElementById("assignMeTaskCountDD").innerHTML = "0";//
+				resolve()
 			}
-			else {
-                 document.getElementById("assignMeTaskCountDD").innerHTML = data[0].noOfTask;
+			else 
+			{
+				if(document.getElementById("assignMeTaskCountDD"))
+				{
+                 document.getElementById("assignMeTaskCountDD").innerHTML = data[0].noOfTask ? data[0].noOfTask: 0;
+				 totalcounter += parseInt(data[0].noOfTask);
 				}
-        } 
-       }
-      }); 
-		///////////////
-		 $.ajax({
-	url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTASSIGNEDOTHERDD&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
-            type: 'GET',
-            dataType: 'json',
-            cache: false,
-            success: function (data) {                
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
-			//console.log(data);
-  			if(data.length == 0){
-				document.getElementById("assignOtherTaskCountDD").innerHTML = "0";//
+				 resolve()			
 			}
-			else {
-                 document.getElementById("assignOtherTaskCountDD").innerHTML = data[0].noOfTask;
+        }
+	} });
+		
+		}).then(()=>{
+			new Promise((resolve,reject)=>{
 				 
-				 
-				}
-        } 
-       }
-      }); 
-		///////////////
-		 $.ajax({
- url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTPERSONALDD&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
-            type: 'GET',
-            dataType: 'json',
-            cache: false,
-            success: function (data) {                
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
-			//console.log(data);
-  			if(data.length == 0){
-				document.getElementById("personalTaskCountDD").innerHTML = "0";//
-			}
-			else {
-                 document.getElementById("personalTaskCountDD").innerHTML = data[0].noOfTask;
-				}
-        } 
-       }
-      }); 
-		///////////////
-		 $.ajax({
- url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCTASKCOUNTDD&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
-            type: 'GET',
-            dataType: 'json',
-            cache: false,
-            success: function (data) {                
-       if(data.STATUS !== 'ERROR') {
-            var data = JSON.parse(data.DATA);
-			//console.log(data);
-  			if(data.length == 0){
-				document.getElementById("ccTaskCountDD").innerHTML = "0";//
-			}
-			else {
-                 document.getElementById("ccTaskCountDD").innerHTML = data[0].noOfTask;
-	var totaltaskcountDD = 0;
-	var amtc = document.getElementById("assignMeTaskCountDD");
- if(typeof amtc !== 'undefined' && amtc !== null) {
-    totaltaskcountDD += parseInt(amtc.innerHTML);
-  }	
- var aotc = document.getElementById("assignOtherTaskCountDD");
- if(typeof aotc !== 'undefined' && aotc !== null) {
-    totaltaskcountDD += parseInt(aotc.innerHTML);
-  }
- 
-  var aptc = document.getElementById("personalTaskCountDD");
- if(typeof aptc !== 'undefined' && aptc !== null) {
-    totaltaskcountDD += parseInt(aptc.innerHTML);
-	
-  }
-  
-  var actc = document.getElementById("ccTaskCountDD");
- if(typeof actc !== 'undefined' && actc !== null) {
-    totaltaskcountDD += parseInt(actc.innerHTML);
-	
-  }
-  
-  
-				 document.getElementById("totaltaskscountDD").innerHTML = totaltaskcountDD;
-				 
-				}
-        } 
-       }
-      });
-		 $.ajax({
+				var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+       // var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+					// COUNTER ASSIGNED OTHER TASKS DD
+					 $.ajax({
+						url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTASSIGNEDOTHERDD&CURRENT_DATE='+dateStr2,
+								type: 'GET',
+								dataType: 'json',
+								cache: false,
+								success: function (data) {                
+						   if(data.STATUS !== 'ERROR') {
+								var data = JSON.parse(data.DATA);
+								//console.log(data);
+								if(data.length == 0){
+									document.getElementById("assignOtherTaskCountDD").innerHTML = "0";//				
+									resolve()			
+					
+								}
+								else {
+									if(document.getElementById("assignOtherTaskCountDD"))
+									{
+									 document.getElementById("assignOtherTaskCountDD").innerHTML = data[0].noOfTask ? data[0].noOfTask: 0;
+									 totalcounter += parseInt(data[0].noOfTask);
+									}
+									 resolve()			
+					
+									}
+							} 
+						   }
+						  }); 
+				
+			}).then(()=>{
+				new Promise((resolve,reject)=>{
+					// COUNTER - PERSONAL TASKS DD
+					var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+       // var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+									$.ajax({
+									 url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=COUNTPERSONALDD&CURRENT_DATE='+dateStr2,
+												type: 'GET',
+												dataType: 'json',
+												cache: false,
+												success: function (data) {                
+										   if(data.STATUS !== 'ERROR') {
+												var data = JSON.parse(data.DATA);
+												//console.log(data);
+												if(data.length == 0){
+													document.getElementById("personalTaskCountDD").innerHTML = "0";
+													resolve()
+												}
+												else {
+													if(document.getElementById("personalTaskCountDD"))
+													{
+													 document.getElementById("personalTaskCountDD").innerHTML = data[0].noOfTask ? data[0].noOfTask: 0;
+													 totalcounter += parseInt(data[0].noOfTask);
+													}
+
+ 													resolve()
+
+													}
+											} 
+										   }
+										  }); 
+								
+				}).then(()=>{
+						new Promise((resolve,reject)=>{
+							// COUNTER - CC TASKS DD
+							var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+							
+									 $.ajax({
+									 url : '<?php echo $url; ?>api2/tasks/count-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCTASKCOUNTDD&CURRENT_DATE='+dateStr2,
+												type: 'GET',
+												dataType: 'json',
+												cache: false,
+												success: function (data) {                
+										   if(data.STATUS !== 'ERROR') {
+												var data = JSON.parse(data.DATA);
+												//console.log(data);
+												
+												if(data.length == 0){
+													document.getElementById("ccTaskCountDD").innerHTML = "0";//
+													resolve()
+												}
+												else 
+												{
+													if(document.getElementById("ccTaskCountDD"))
+													{
+													document.getElementById("ccTaskCountDD").innerHTML = data[0].noOfTask ? data[0].noOfTask: 0;
+													totalcounter += parseInt(data[0].noOfTask);
+													}
+													resolve()
+												}			
+											} 
+										   }
+										  });
+																
+						}).then(()=>{								
+								document.getElementById("totaltaskscountDD").innerHTML = totalcounter;
+						})								
+
+				}).then(()=>{
+						new Promise((resolve,reject)=>{
+							// COUNTER - CC TASKS DD
+							var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+									 $.ajax({
+									 url : '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&CURRENT_DATE='+dateStr2,
+												type: 'GET',
+												dataType: 'json',
+												cache: false,
+												success: function (data) {                
+										   if(data.STATUS !== 'ERROR') {
+												var data = JSON.parse(data.DATA);
+												console.log('Rafiq=>',data);
+												
+												if(data.length == 0){
+													document.getElementById("projectTaskCountDD").innerHTML = "0";//
+													$("#projectduetasks").remove();
+													resolve()
+												}
+												else 
+												{
+													if(document.getElementById("projectTaskCountDD"))
+													{
+													document.getElementById("projectTaskCountDD").innerHTML = data.length ? data.length: 0;
+													totalcounter += parseInt(data.length);
+													}
+													resolve()
+												}			
+											} 
+											else{
+												
+												document.getElementById("projectTaskCountDD").innerHTML = "0";//
+													$("#projectduetasks").remove();
+													resolve()
+											}
+										   }
+										  });
+																
+						}).then(()=>{								
+								document.getElementById("totaltaskscountDD").innerHTML = totalcounter;
+						})								
+
+				})
+			})				
+		})
+
+	  
+// COUNTER - ASSIGNED TO ME TASKS NORMAL
+$.ajax({
 	 url : '<?php echo $url; ?>api2/tasks/count-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=ASSIGNMETASKCOUNT',
             type: 'GET',
             dataType: 'json',
@@ -791,8 +885,8 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
         } 
        }
       }); 
-		///////////////
-		 $.ajax({
+// COUNTER - ASSINGN TO OTHERS TASKS NORMAL
+$.ajax({
 	 url : '<?php echo $url; ?>api2/tasks/count-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=ASSIGNOTHERTASKCOUNT',
             type: 'GET',
             dataType: 'json',
@@ -808,9 +902,13 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 				}
         } 
        }
-      }); 
-		///////////////
-		 $.ajax({
+      });  
+
+		
+	    
+	   
+	// COUNTER - POERSONAL TASKS DD
+   $.ajax({
 	 url : '<?php echo $url; ?>api2/tasks/count-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PERSONALTASKCOUNT',
             type: 'GET',
             dataType: 'json',
@@ -827,6 +925,12 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
         } 
        }
       }); 
+	  
+	
+ 		
+		
+	
+		
 		///////////////
 		 $.ajax({
 	 url : '<?php echo $url; ?>api2/tasks/count-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCTASKCOUNT',
@@ -916,10 +1020,14 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 		 }
 		   }
         });
-		////////////////
+		//////////////// ASSIGNED TO ME TASKS		
+	var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
 		
+    //    var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+	
 		 $.ajax({
-            url:  '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+            url:  '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE='+dateStr2,
             type: 'GET',
             dataType: 'json',
             cache: false,
@@ -935,8 +1043,9 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
                   
             }
         }); 
-	 //////////////////////////////
+	 ////////////////////////////// ASAIGN OTEHR TASKS
 	  $.ajax({
+		  
             url:  '<?php echo $url; ?>api2/tasks/fetch-others-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
             type: 'GET',
             dataType: 'json',
@@ -946,16 +1055,17 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
             var data3 = JSON.parse(data3.DATA);
 			if(data3.length == 0){
 				$("#submenu1 ul li > a:contains('Assigned To Others')").parent().remove();
-			
 			}
-			
         }
-                  
             }
         }); 
-	 ///////////////////////////
+	 /////////////////////////// CC USERS
+	var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
 	  $.ajax({
-	 url : '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-users?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+	 url : '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-users?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE='+dateStr2,
             type: 'GET',
             dataType: 'json',
             cache: false,
@@ -970,8 +1080,8 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
                   
             }
         }); 
-	//////////////////////////////
 		
+		// shipment tasks counter //		
         var url = '<?php echo $url; ?>api2/shipments/fetch-shipments?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
          $.ajax({
             url: url,
@@ -982,14 +1092,10 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 				if(data.STATUS !== 'ERROR') {
 					var data = JSON.parse(data.DATA);
 					//alert(data.length);
-					document.getElementById("shipmentTaskCount").innerHTML = data.length;						
-					
-        }     
+					document.getElementById("shipmentTaskCount").innerHTML = data.length;											
+		        }     
             }
         });
-    
-	///////////////////////////////////////////////
-		
 		
 		});
 </script>
@@ -1085,6 +1191,14 @@ div.hdr_menu{
             <div class="row" style="margin-top:48px;">
             <div class="col-12"><div style="clear:both; border-bottom:1px solid #f5de67; font-family:Tahoma, Geneva, sans-serif; font-size:12px; line-height:25px;" id="breadcrumb">Home </div></div>
             </div>
+            <?php /*?><div class="row">
+            	<div class="alert alert-info alert-dismissible fade show" role="alert">
+                  <strong>NOTIFICATION! (TASK OVERDUE) </strong>CHECK ON THE WAY SHIPMENTS  - (11 hours ago)   &nbsp; &nbsp;  Personal Task by <strong>Ziad Minhas</strong> Notification on <span style="color:#006;">08/27/2020 09:15:44</span>
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+            </div><?php */?>
             <div class="row mail-container align-items-stretch" style="margin-top:0px;">
                 <div class="mail-sidebar d-none d-lg-block col-md-3 pt-3 bg-white">
                     <div class="menu-bar">
@@ -1114,7 +1228,13 @@ div.hdr_menu{
                                        <a class="nav-link collapsed" href="#submenuCCtaskDD" data-toggle="collapse" data-target="#submenuCCtaskDD" id="ccTasksDD"><span style="float:left">CC Tasks</span><span class="badge-pill" id="ccTaskCountDD"></span></a>
                                         <div class="collapse" id="submenuCCtaskDD" aria-expanded="false"></div>
                                        </li>
-                                       
+										
+										
+                                        <li class="nav-item" id="projectduetasks">                                        
+                                        <a class="nav-link collapsed" href="#submenu1p_proj" data-toggle="collapse" data-target="#submenu1p_proj" id="projectTasksDD" style="background:#93bcc7;"><span style="float:left">Project Tasks</span><span id="projectTaskCountDD" class="badge-pill"></span></a>
+                                        <div class="collapse" id="submenu1p_proj" aria-expanded="false"></div>
+                                        </li> 
+										
                                     </ul>
                                 </div>
                             </li>                            
@@ -1228,7 +1348,7 @@ div.hdr_menu{
 </div>
 
 
-<script src="http://netdna.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://netdna.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 <script type="text/javascript">
     var taskList = $('#taskLists');
     var taskDetail = $('#taskDetails');
@@ -1240,6 +1360,7 @@ var submenuOtherDD = $('#submenuOtherDD');
 var submenuCCtaskDD = $('#submenuCCtaskDD');
 var submenuCC = $('#submenuCC');
 var submenu1p = $('#submenu1p');
+var submenu1p_proj = $('#submenu1p_proj');
 var submenu1myp = $('#submenu1myp');
 var submenuMeDD2 = $('#submenuMeDD2'); 
 var submenuMe2 = $('#submenuMe2'); 
@@ -1285,6 +1406,9 @@ $('#breadcrumb').html('Home &raquo; Due Today &raquo; Assigned to Me');
 	$("a#personalTasksDD").removeClass("nav-link");
 	$("a#personalTasksDD").addClass("nav-link collapsed");
 	$("a#personalTasksDD").attr('aria-expanded','false');
+	$("a#projectTasksDD").removeClass("nav-link");
+	$("a#projectTasksDD").addClass("nav-link collapsed");
+	$("a#projectTasksDD").attr('aria-expanded','false');
 	$("div#submenu1p").removeClass("collapse show");
 	$("div#submenu1p").addClass("collapse");
 	$("div#submenu1p").attr('aria-expanded','false');
@@ -1328,7 +1452,14 @@ $('#breadcrumb').html('Home &raquo; Due Today &raquo; Assigned to Me');
         //showAssignMeTasksDD(url, 1, 'tasks');
 		taskList.empty();
 		 taskDetail.empty();
-		  var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=MECTR&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&ASSIGNED_ID='+selectedUID;
+		 
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+       // var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		 
+		 
+		  var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=MECTR&CURRENT_DATE='+dateStr2+'&ASSIGNED_ID='+selectedUID;
         $.ajax({
             url:  url,
             type: 'GET',
@@ -1410,7 +1541,12 @@ $('#breadcrumb').html('Home &raquo; Assigned to Me &raquo; '+uname + ' &raquo; N
         //showAssignMeTasksDD(url, 1, 'tasks');
 		taskList.empty();
 		 taskDetail.empty();
-		  var url = '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-interval?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSINTERVAL&CURRENT_DATE=<?php echo date('Y-m-d'); ?>';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+		  var url = '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-interval?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSINTERVAL&CURRENT_DATE='+dateStr2;
         $.ajax({
             url:  url,
             type: 'GET',
@@ -1490,7 +1626,12 @@ $('#breadcrumb').html('Home &raquo; Due Today &raquo; Assigned to Other &raquo; 
         //showAssignMeTasksDD(url, 1, 'tasks');
 		taskList.empty();
 		 taskDetail.empty();
-		  var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=OTHERCTR&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&ASSIGNED_ID='+selectedUID;
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+		  var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=OTHERCTR&CURRENT_DATE='+dateStr2+'&ASSIGNED_ID='+selectedUID;
         $.ajax({
             url:  url,
             type: 'GET',
@@ -1606,8 +1747,12 @@ $('#breadcrumb').html('Home &raquo; Assigned to Other &raquo; '+uname + ' &raquo
 	$("div#submenuOtherDD").addClass("collapse");
 	$("div#submenuOtherDD").attr('aria-expanded','false');
 	
-	 
-        var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PERSONALCTR&CURRENT_DATE=<?php echo date('Y-m-d'); ?>';
+	 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        var url = '<?php echo $url; ?>api2/tasks/fetch-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PERSONALCTR&CURRENT_DATE='+dateStr2;
         $.ajax({
             url:  url,
             type: 'GET',
@@ -1630,6 +1775,82 @@ $('#breadcrumb').html('Home &raquo; Assigned to Other &raquo; '+uname + ' &raquo
         activeTab($(this), $('#personalTasksDD'));
 		
     });
+	
+	    $('#projectTasksDD').click(function(e) {
+		$('#breadcrumb').html('Home &raquo; Due Today &raquo; Project Tasks');
+		taskList.empty();
+		 taskDetail.empty();
+
+	
+
+	if($('a#projectTasksDD').attr('aria-expanded') == 'false')
+	{
+		dueTaskProjectDueFunction();
+		
+	}
+	else
+	{
+		taskList.empty();
+		taskDetail.empty();
+
+	}
+
+			
+	$("a#projectTasksDD").removeClass("nav-link collapsed");
+	$("a#projectTasksDD").addClass("nav-link");
+	$("a#projectTasksDD").attr('aria-expanded','true');
+			
+	$("a#personalTasksDD").removeClass("nav-link");
+	$("a#personalTasksDD").addClass("nav-link collapsed");
+	$("a#personalTasksDD").attr('aria-expanded','false');
+			
+	$("a#assignMeDD").removeClass("nav-link");
+	$("a#assignMeDD").addClass("nav-link collapsed");
+	$("a#assignMeDD").attr('aria-expanded','false');
+			
+	$("div#submenuMeDD").removeClass("collapse show");
+	$("div#submenuMeDD").addClass("collapse");
+	$("div#submenuMeDD").attr('aria-expanded','false');
+	$("a#ccTasksDD").removeClass("nav-link");
+	$("a#ccTasksDD").addClass("nav-link collapsed");
+	$("a#ccTasksDD").attr('aria-expanded','false');
+	$("div#submenuCCtaskDD").removeClass("collapse show");
+	$("div#submenuCCtaskDD").addClass("collapse");
+	$("div#submenuCCtaskDD").attr('aria-expanded','false');
+	$("a#assignOthersDD").removeClass("nav-link");
+	$("a#assignOthersDD").addClass("nav-link collapsed");
+	$("a#assignOthersDD").attr('aria-expanded','false');
+	$("div#submenuOtherDD").removeClass("collapse show");
+	$("div#submenuOtherDD").addClass("collapse");
+	$("div#submenuOtherDD").attr('aria-expanded','false');
+	
+	  var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+			
+        var url = '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PROJECTCTR&CURRENT_DATE='+dateStr2;
+        $.ajax({
+            url:  url,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+               var data = JSON.parse(data.DATA);
+  		 submenu1p_proj.empty();
+
+		 if(data[0].repeated > 0 && data[0].nonrepeated > 0){
+			 submenu1p_proj.append('<ul class="menu-items nav flex-column flex-nowrap" style="margin:1px 13px;"><li class="nav-item"><a class="nav-link" href="#" id="dueTaskPersonalRep" onclick="dueTaskPersonalRepFunction();"><span style="float:left">Repeated Tasks</span><span class="badge-pill" id="">'+data[0].repeated+'</span></a></li></ul>');		 
+		 } else if(data[0].repeated > 0 && data[0].nonrepeated == 0){
+			 submenu1p_proj.append('<ul class="menu-items nav flex-column flex-nowrap" style="margin:1px 13px;"><li class="nav-item"><a class="nav-link" href="#" id="dueTaskPersonalRep" onclick="dueTaskPersonalRepFunction();"><span style="float:left">Repeated Tasks</span><span class="badge-pill" id="">'+data[0].repeated+'</span></a></li></ul>');
+		 }
+	
+            }
+        });
+    
+
+        activeTab($(this), $('#projectTasksDD'));
+		
+    });
+	
 	 $('#myPersonalTasks').click(function(e) {	
 		
 		$('#breadcrumb').html('Home &raquo; My Personal Tasks &raquo; Non Repeated Tasks');
@@ -1698,6 +1919,16 @@ console.log(data);
         showPersonalTasksDDDue(url, 1, 'tasks');
         activeTab($(this), $('#dueTaskPersonalDue'));
     }
+	
+	
+	function dueTaskProjectDueFunction() {
+			$('#breadcrumb').html('Home &raquo; Due Today &raquo; Project Tasks');
+        var url = '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+        showProjectTasksDDDue(url, 1, 'tasks');
+        activeTab($(this), $('#dueTaskProjectDue'));
+    }
+	
+	
 	//dueTaskPersonalDue
 	//$('#dueTaskPersonalRep').click(function(e) {
 		function dueTaskPersonalRepFunction() {
@@ -1831,24 +2062,23 @@ console.log(data);
 			
 			if(data.length > 0) {
 				
-/*				
-<ul class="menu-items nav flex-column flex-nowrap">
-	<li class="nav-item">
-		<a class="nav-link" href="#" id="todoPersonalTask" onclick="TaskPersonalFunction();">Todo Tasks</a>
-	</li>
-	<li class="nav-item">
-		<a class="nav-link" href="#" id="RepPersonalTask" onclick="TaskPersonalRepFunction();">Repeated Tasks</a>
-	</li>
-</ul>
-	*/	
-				
+	
 				
  submenuMyProjects.append('<ul class="menu-items nav flex-column flex-nowrap"  style="margin:1px;">');
            // console.log(data);	
 				var bgclr = ' background:rgba(237, 242, 249, 0.77);';
 			for (var i = 0; i < data.length; i++) {
 				if(i%2==0) { bgclr = ' background:rgba(255, 255, 255, 0.8);'; } else { bgclr = ' background:rgba(237, 242, 249, 0.77);'; }
-			submenuMyProjects.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 6px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].PROJECT_ID+'" onclick="funshowProjectTasks('+data[i].PROJECT_ID+',\''+data[i].PROJECT_NAME+'\');" href="#" data-target="#'+data[i].PROJECT_ID+'" >'+data[i].PROJECT_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].FULL_NAME+'</span></a></li>');
+			if(data[i].CREATOR_ID == <?php echo $_SESSION['logged_in']['USER_ID']; ?>)
+			{
+				submenuMyProjects.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 6px; padding:3px;'+bgclr+' border-radius:4px; clear:both;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].PROJECT_ID+'" onclick="funshowProjectTasks('+data[i].PROJECT_ID+',\''+data[i].PROJECT_NAME+'\',\''+data[i].CREATOR_ID+'\');" href="#" data-target="#'+data[i].PROJECT_ID+'" >'+data[i].PROJECT_NAME+'<span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal; float:right;margin-right: 54px;">'+data[i].FULL_NAME+'</span></a><span style="float:right;padding:4px;margin-top: -30px;"><img src="assets/images/add-ico-20.png" style="cursor:pointer;" data-pname="'+data[i].PROJECT_NAME+'" data-pid="'+data[i].PROJECT_ID+'" id="addProjectTask" ></span><span style="float:right;padding:4px;margin-top: -30px;"><img src="assets/images/btn_delete.png" data-pname="'+data[i].PROJECT_NAME+'" data-pid="'+data[i].PROJECT_ID+'" id="delProject" style="cursor:pointer;" ></span></li>');
+				
+			}
+			else
+			{
+				submenuMyProjects.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 6px; padding:3px;'+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].PROJECT_ID+'" onclick="funshowProjectTasks('+data[i].PROJECT_ID+',\''+data[i].PROJECT_NAME+'\');" href="#" data-target="#'+data[i].PROJECT_ID+'" >'+data[i].PROJECT_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal; padding-right:5px;">'+data[i].FULL_NAME+'</span></a></li>');
+			}
+			
             }
 			submenuMyProjects.append('</ul>');
 			}
@@ -1874,6 +2104,7 @@ console.log(data);
 
    $(document).on('click', '.taskDetailsProj', function() {
         var PROJECT_ID = $(this).data('task_id');
+		 var ASSIGNED_ID = $(this).data('assigned_id');
 		
         $.ajax({
             url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + PROJECT_ID + '&OBJECT_TYPE=task',
@@ -1883,13 +2114,279 @@ console.log(data);
             success: function (data) {
                 if(data.STATUS === 'SUCCESS') {
 					//console.log(data.DATA);
-                   showProjTaskDetail(data.DATA)
+                   showProjTaskDetail(ASSIGNED_ID,data.DATA)
                 }
             }
         });
     });
 
-  function showProjTaskDetail(d) {
+//showProjectSubTaskDetail
+function showProjectTaskDetail(ASSIGNED_ID,PROJECT_ID)
+{
+	
+        $.ajax({
+            url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + PROJECT_ID + '&OBJECT_TYPE=task',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(data.STATUS === 'SUCCESS') {
+					//console.log(data.DATA);
+                   showProjTaskDetail(ASSIGNED_ID,data.DATA)
+                }
+            }
+        });
+    
+}
+function showProjectSubTaskDetail(ASSIGNED_ID,PROJECT_ID)
+{
+	
+        $.ajax({
+            url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + PROJECT_ID + '&OBJECT_TYPE=task',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(data.STATUS === 'SUCCESS') {
+					//console.log(data.DATA);
+                   showProjSubTaskDetail(ASSIGNED_ID,data.DATA)
+                }
+            }
+        });
+    
+}
+
+ $(document).on('click', '#btn_editTaskProjStatus', function() { 
+var  TASK_ID = this.value;
+var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+$.ajax({
+            url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + TASK_ID + '&OBJECT_TYPE=task',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(data.STATUS === 'SUCCESS') {
+                    showEditTaskStatusDetail(data.DATA)
+                }
+            }
+        });
+
+  });
+  //showEditSubTaskDetailAll
+  function showEditTaskDetailAll(d) {
+	  
+	 var data = JSON.parse(d);
+	// alert(data.TASK_STATUS);
+	  /*
+		d1 = new Date(convertDate(data.DUE_DATE));
+		var dayr = ("0" + d1.getDate()).slice(-2);
+		var monr = ("0" + (d1.getMonth()+1)).slice(-2);
+		var fullyear = d1.getFullYear();
+		
+		
+		finaldate = [fullyear,monr,dayr].join('-');
+		var d = new Date(); // for now
+           var hrs = d1.getHours(); // => 9
+		   var mits = d1.getMinutes(); // =>  30
+	       var secs = d1.getSeconds(); // => 51
+		    if(finaldate=="1970-01-01"){finaldate="";}
+		   
+		   
+		   hrs = ('0' + hrs).slice(-2);
+		   mits = ('0' + mits).slice(-2);
+		   
+		   finaltime = [hrs,mits,].join(':');
+		
+		*/
+	  var duedatedt = data.DUE_DATE_DT;
+		 var fields = duedatedt.split(' ');		 
+		var finaldate = fields[0];
+		 var finaltime = fields[1];
+		
+		var output = "";
+		 var openvar = "";
+		  var closevar = "";
+		   var completevar = "";
+		    var inprogressvar = "";
+		 switch(data.TASK_STATUS)
+		 {
+			 case "OPEN":
+			 		openvar = " selected='selected'";
+			 	break;
+				 case "CLOSED":
+			 		closevar = " selected='selected'";
+			 	break;
+				 case "COMPLETED":
+			 		completevar = " selected='selected'";
+			 	break;
+				 case "IN PROGRESS":
+			 		inprogressvar = " selected='selected'";
+			 	break;
+		 }
+
+var imgsOutput = "";
+		var imgesArr = data.IMAGES;
+		if(Array.isArray(imgesArr)){
+		for(var aa=0;aa<imgesArr.length;aa++)
+		{
+			//alert('< ?php echo $url; ?>');
+			imgsOutput += '<a data-fancybox="gallery"  href="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" data-title="Photo" ><img src="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a>&nbsp; ';
+		}
+		}
+		else
+		imgsOutput = "";
+//if(output == "") output += "Never";
+		
+		taskDetail.empty();
+		
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_editProjectTaskAll" name="frm_editProjectTaskAll" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Edit Project Task Detail</h2></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="'+data.TASK_TITLE+'" ><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="' + finaldate + '" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="' + finaltime + '" ></div></div>' +		   
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" >' + data.TASK_DESCRIPTION + '</textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_STATUS">Task Status</label> <select class="custom-select browser-default" id="TASK_STATUS" name="TASK_STATUS"><option value="OPEN" ' + openvar + ' >OPEN</option><option value="CLOSED" ' + closevar + '>CLOSED</option><option value="COMPLETED" ' + completevar + '>COMPLETED</option><option value="IN PROGRESS" ' + inprogressvar + '>IN PROGRESS</option></select></div><div class="col-md-6"><label for="Creator">Assigned To</label><input type="text" class="form-control" id="Creator" placeholder="Assigned" value="' + data.FULL_NAME + '" readonly></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12">'+imgsOutput+'</div></div>' +
+		    '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" type="button" style="width:200px;" id="btn_updateTaskbx" name="btn_updateTaskbx" onclick="changeProjectTaskAll(\'IN PROGRESS\','+data.TASK_ID+');" value="'+data.TASK_ID+'" >Update Task </button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-info" type="button" style="width:200px;" id="btn_CancelTask" name="btn_CancelTask" onclick="showProjectTaskDetail('+data.ASSIGNED_ID+','+data.TASK_ID+')" >Cancel Update</button></div></div>' +		   
+            '</div></form></div>'
+        );
+		
+	
+  }
+   function showEditSubTaskDetailAll(d) {
+	  
+	 var data = JSON.parse(d);
+	// alert(data.TASK_STATUS);
+	   /*
+		d1 = new Date(convertDate(data.DUE_DATE));
+		var dayr = ("0" + d1.getDate()).slice(-2);
+		var monr = ("0" + (d1.getMonth()+1)).slice(-2);
+		var fullyear = d1.getFullYear();
+		
+		
+		finaldate = [fullyear,monr,dayr].join('-');
+		var d = new Date(); // for now
+           var hrs = d1.getHours(); // => 9
+		   var mits = d1.getMinutes(); // =>  30
+	       var secs = d1.getSeconds(); // => 51
+		    if(finaldate=="1970-01-01"){finaldate="";}
+		   
+		   
+		   hrs = ('0' + hrs).slice(-2);
+		   mits = ('0' + mits).slice(-2);
+		   
+		   finaltime = [hrs,mits,].join(':');
+		
+		*/
+	   var duedatedt = data.DUE_DATE_DT;
+		 var fields = duedatedt.split(' ');		 
+		var finaldate = fields[0];
+		 var finaltime = fields[1];
+		
+		var output = "";
+		 var openvar = "";
+		  var closevar = "";
+		   var completevar = "";
+		    var inprogressvar = "";
+		 switch(data.TASK_STATUS)
+		 {
+			 case "OPEN":
+			 		openvar = " selected='selected'";
+			 	break;
+				 case "CLOSED":
+			 		closevar = " selected='selected'";
+			 	break;
+				 case "COMPLETED":
+			 		completevar = " selected='selected'";
+			 	break;
+				 case "IN PROGRESS":
+			 		inprogressvar = " selected='selected'";
+			 	break;
+		 }
+
+//if(output == "") output += "Never";
+		
+		taskDetail.empty();
+		
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_editProjectTaskAll" name="frm_editProjectTaskAll" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Edit Project Sub Task Detail</h2></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="'+data.TASK_TITLE+'" ><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="' + finaldate + '" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="' + finaltime + '" ></div></div>' +		   
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" >' + data.TASK_DESCRIPTION + '</textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_STATUS">Task Status</label> <select class="custom-select browser-default" id="TASK_STATUS" name="TASK_STATUS"><option value="OPEN" ' + openvar + ' >OPEN</option><option value="CLOSED" ' + closevar + '>CLOSED</option><option value="COMPLETED" ' + completevar + '>COMPLETED</option><option value="IN PROGRESS" ' + inprogressvar + '>IN PROGRESS</option></select></div><div class="col-md-6"><label for="Creator">Assigned To</label><input type="text" class="form-control" id="Creator" placeholder="Assigned" value="' + data.FULL_NAME + '" readonly></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" type="button" style="width:200px;" id="btn_updateSubTaskbx" name="btn_updateSubTaskbx" onclick="changeProjectSubTaskAll(\'IN PROGRESS\','+data.TASK_ID+');" value="'+data.TASK_ID+'" >Update Task </button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-info" type="button" style="width:200px;" id="btn_CancelTask" name="btn_CancelTask" onclick="showProjectSubTaskDetail('+data.ASSIGNED_ID+','+data.TASK_ID+')" >Cancel Update</button></div></div>' +		   
+            '</div></form></div>'
+        );
+		
+	
+  }
+ function showEditTaskStatusDetail(d) {
+	 var data = JSON.parse(d);
+	// alert(data.TASK_STATUS);
+	 /*
+		d1 = new Date(convertDate(data.DUE_DATE));
+		var dayr = ("0" + d1.getDate()).slice(-2);
+		var monr = ("0" + (d1.getMonth()+1)).slice(-2);
+		var fullyear = d1.getFullYear();
+		
+		
+		finaldate = [fullyear,monr,dayr].join('-');
+		var d = new Date(); // for now
+           var hrs = d1.getHours(); // => 9
+		   var mits = d1.getMinutes(); // =>  30
+	       var secs = d1.getSeconds(); // => 51
+		    if(finaldate=="1970-01-01"){finaldate="";}
+		   
+		   
+		   hrs = ('0' + hrs).slice(-2);
+		   mits = ('0' + mits).slice(-2);
+		   
+		   finaltime = [hrs,mits,].join(':');
+		*/
+	 var duedatedt = data.DUE_DATE_DT;
+		 var fields = duedatedt.split(' ');		 
+		var finaldate = fields[0];
+		 var finaltime = fields[1];
+		
+		
+		var output = "";
+		 var openvar = "";
+		  var closevar = "";
+		   var completevar = "";
+		    var inprogressvar = "";
+		 switch(data.TASK_STATUS)
+		 {
+			 case "OPEN":
+			 		openvar = " selected='selected'";
+			 	break;
+				 case "CLOSED":
+			 		closevar = " selected='selected'";
+			 	break;
+				 case "COMPLETED":
+			 		completevar = " selected='selected'";
+			 	break;
+				 case "IN PROGRESS":
+			 		inprogressvar = " selected='selected'";
+			 	break;
+		 }
+
+//if(output == "") output += "Never";
+		
+		taskDetail.empty();
+		
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_editStatusProjectTask" name="frm_editStatusProjectTask" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Edit Status Project Task</h2></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="' + finaldate + '" readonly><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="' + finaltime + '" readonly></div></div>' +		   
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" readonly >' + data.TASK_DESCRIPTION + '</textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_STATUS">Task Status</label> <select class="custom-select browser-default" id="TASK_STATUS" name="TASK_STATUS"><option value="OPEN" ' + openvar + ' >OPEN</option><option value="CLOSED" ' + closevar + '>CLOSED</option><option value="COMPLETED" ' + completevar + '>COMPLETED</option><option value="IN PROGRESS" ' + inprogressvar + '>IN PROGRESS</option></select></div><div class="col-md-6"><label for="Creator">Assigned To</label><input type="text" class="form-control" id="Creator" placeholder="Assigned" value="' + data.FULL_NAME + '" readonly></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" type="button" style="width:200px;" id="btn_updateTaskx" name="btn_updateTaskx" onclick="changeStatusProjectTask(\'IN PROGRESS\','+data.TASK_ID+');" value="'+data.TASK_ID+'" >Update Task Status</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-info" type="button" style="width:200px;" id="btn_CancelTask" name="btn_CancelTask" onclick="showProjectTaskDetail('+data.ASSIGNED_ID+','+data.TASK_ID+')" >Cancel Update</button></div></div>' +		   
+            '</div></form></div>'
+        );
+	
+    }
+	//showProjSubTaskDetail(aid,data.DATA)
+  function showProjTaskDetail(aid,d) {
 	
         taskDetail.empty();
 		//console.log(d);
@@ -1907,11 +2404,15 @@ console.log(data);
 		// console.log(data.IMAGES.length);
 		var imgsOutput = "";
 		var imgesArr = data.IMAGES;
+		if(Array.isArray(imgesArr)){
 		for(var aa=0;aa<imgesArr.length;aa++)
 		{
 			//alert('< ?php echo $url; ?>');
 			imgsOutput += '<a data-fancybox="gallery"  href="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" data-title="Photo" ><img src="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a>&nbsp; ';
 		}
+		}
+		else
+		imgsOutput = "";
 		// return false;
 $.ajax({
 	url: '<?php echo $url; ?>api2/projects/get-project-detail?PROJECT_ID='+data.PROJECT_ID,
@@ -1921,18 +2422,33 @@ $.ajax({
             success: function (datax) {                
        if(datax.STATUS !== 'ERROR') {
             var datax = JSON.parse(datax.DATA);
-			console.log(datax);
-			//alert(data.FULL_NAME+'=aa');
+			console.log('project details=>',datax);
+			//alert(data.xFULL_NAME+'=aa');
+			
+			var btn_edit = '';
+			var logged_userId = <?php echo $_SESSION['logged_in']['USER_ID']; ?>;
+			if(datax.CREATOR_ID == logged_userId)
+			{
+				//btn_edit = '<div class="col-md-4" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProj" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-4" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div><div class="col-md-4" style="text-align:center;"></div>';
+				btn_edit = '<div class="col-md-4" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProj" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-4" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div><div class="col-md-4" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="addProjectSubTask" data-pid="'+datax.PROJECT_ID+'" data-pname="'+datax.PROJECT_NAME+'" value="' + data.TASK_ID + '" >Add SubTask</button></div>';
+			}
+			else if(aid == logged_userId)
+			{
+				btn_edit = '<div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProjStatus" value="' + data.TASK_ID + '" >Edit Task Status</button></div><div class="col-md-6" style="text-align:center;"></div>';
+			}
+			else
+			{
+				btn_edit = '<div class="col-md-12" style="text-align:center;"></div>';
+			}
 			
 			taskDetail.append('<div class="message-body">' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Project Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task Name" value="'+datax.PROJECT_NAME+'" readonly="readonly" ></div></div>' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task Name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="" value="'+duedatae+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-4"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="" value="'+duedatae+'" readonly="readonly" ></div><div class="col-md-4"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-4"><label for="txt_task_due">Assigned To</label><input type="text" class="form-control" id="txt_task_due" placeholder="" value="'+data.FULL_NAME+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
-		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProj" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
+		   '<div class="row" style="margin-top:25px;">'+btn_edit+'</div>' +
             '</div>'
         );
 			
@@ -1976,14 +2492,21 @@ $.ajax({
 				 
 				   if(datax.STATUS !== 'ERROR') {
 						var datay = JSON.parse(datax.DATA);
-			   taskDetail.append('<div class="mail-list" style="background: grey;color:white; padding:5px;"><h6 style="margin:0px">Sub Tasks List</h6></div>');
+			   taskDetail.append('<div class="mail-list" style="background: grey;color:white; padding:5px; margin-top:20px;"><h6 style="margin:0px">Sub Tasks List</h6></div>');
 			   			datay = datay.DATA;
-						// console.log(datay.DATA);		
+						 console.log('SubTask Detail:',datay);		
 						 var tasktype = 'TODO';						
 						for (var z = 0; z < datay.length; z++) {
 							
-								if(datay[z].DUE_DATE=="0" || datay[z].DUE_DATE == ""){tasktype = 'TODO';} else { tasktype = 'Date:'+convertDate(datay[z].DUE_DATE);}
-							taskDetail.append('<div class="row" onclick="funShowSubTaskDetail('+ datay[z].TASK_ID+');" style="cursor:pointer"><div  style="border:1px solid grey; padding:5px; width:100%; clear:both; height:70px; margin:2px 15px"><div style="clear:both;"><div style="float:left; margin:2px;"><strong>TITLE:</strong> &nbsp; ' + datay[z].TASK_TITLE + '</div><div style="float:right; margin:2px;"><strong>STATUS:</strong> &nbsp; '+datay[z].TASK_STATUS+'</div></div><div style="clear:both;"><div style="float:left;"><strong>Assigned:</strong> &nbsp; '+ datay[z].FULL_NAME+'</div><div style="float:right; margin:2px;"><strong>TYPE:</strong> &nbsp; ' +tasktype + '</div></div></div></div>');
+							if(datay[z].DUE_DATE=="0" || datay[z].DUE_DATE == "")
+							{
+								tasktype = 'TODO';
+							} 
+							else 
+							{ 
+								tasktype = 'Due:'+convertDate(datay[z].DUE_DATE);
+							}
+							taskDetail.append('<div class="row" onclick="funShowSubTaskDetail('+datay[z].ASSIGNED_ID+','+ datay[z].TASK_ID+');" style="cursor:pointer"><div  style="border:1px solid grey; padding:5px; width:100%; clear:both; height:70px; margin:2px 15px"><div style="clear:both;"><div style="float:left; margin:2px;"><strong>TITLE:</strong> &nbsp; ' + datay[z].TASK_TITLE + '</div><div style="float:right; margin:2px;"><strong>STATUS:</strong> &nbsp; '+datay[z].TASK_STATUS+'</div></div><div style="clear:both;"><div style="float:left;"><strong>Assigned:</strong> &nbsp; '+ datay[z].FULL_NAME+'</div><div style="float:right; margin:2px;"><strong>TYPE:</strong> &nbsp; ' +tasktype + '</div></div></div></div>');
 						}
 						
 					} 
@@ -1993,7 +2516,138 @@ $.ajax({
         });
     }
 	
-	function funShowSubTaskDetail(sTask_ID)
+	 function showProjSubTaskDetail(aid,d) {
+	
+        taskDetail.empty();
+		//console.log(d);
+        var data = JSON.parse(d);
+		 console.log(data);
+		 var output = "";
+		var duedatae = convertDate(data.DUE_DATE)
+				 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
+				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
+		var createdatae = convertDate(data.CREATED_DATE);
+		
+				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
+				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
+
+		// console.log(data.IMAGES.length);
+		var imgsOutput = "";
+		var imgesArr = data.IMAGES;
+		if(Array.isArray(imgesArr)){
+		for(var aa=0;aa<imgesArr.length;aa++)
+		{
+			//alert('< ?php echo $url; ?>');
+			imgsOutput += '<a data-fancybox="gallery"  href="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" data-title="Photo" ><img src="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a>&nbsp; ';
+		}
+		}
+		else
+		imgsOutput = "";
+		// return false;
+$.ajax({
+	url: '<?php echo $url; ?>api2/projects/get-project-detail?PROJECT_ID='+data.PROJECT_ID,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (datax) {                
+       if(datax.STATUS !== 'ERROR') {
+            var datax = JSON.parse(datax.DATA);
+			console.log('project details=>',datax);
+			//alert(data.xFULL_NAME+'=aa');
+			
+			var btn_edit = '';
+			var logged_userId = <?php echo $_SESSION['logged_in']['USER_ID']; ?>;
+			if(datax.CREATOR_ID == logged_userId)
+			{
+				//btn_edit = '<div class="col-md-4" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProj" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-4" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div><div class="col-md-4" style="text-align:center;"></div>';
+				btn_edit = '<div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editSubTaskProj" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Sub Task</button></div></div>';
+			}
+			else if(aid == logged_userId)
+			{
+				btn_edit = '<div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskProjStatus" value="' + data.TASK_ID + '" >Edit Task Status</button></div><div class="col-md-6" style="text-align:center;"></div>';
+			}
+			else
+			{
+				btn_edit = '<div class="col-md-12" style="text-align:center;"></div>';
+			}
+			
+			taskDetail.append('<div class="message-body">' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Project Sub Task Detail</h2></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Project Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task Name" value="'+datax.PROJECT_NAME+'" readonly="readonly" ></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task Name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-4"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="" value="'+duedatae+'" readonly="readonly" ></div><div class="col-md-4"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-4"><label for="txt_task_due">Assigned To</label><input type="text" class="form-control" id="txt_task_due" placeholder="" value="'+data.FULL_NAME+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
+		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
+		   '<div class="row" style="margin-top:25px;">'+btn_edit+'</div>' +
+            '</div>'
+        );
+			
+	   }
+			}
+});
+			
+					
+		
+		/*
+        taskDetail.append('<div class="message-body">' +
+            '<div class="sender-details">Project Task Name</div>' +
+            '<div class="message-content">' + data.TASK_TITLE + '</div>' +
+            '<div class="sender-details">Status</div>' +
+            '<div class="message-content">' +
+            '<label class="badge badge-info">' + data.TASK_STATUS + '</label>' +
+            '</div>' +	
+		   
+		   '<div class="sender-details">Due Date</div>' +
+            '<div class="message-content">' + duedatae + '</div>' +
+			
+			
+            '<div class="message-content"><span>Description: </span>' +
+            '<div class="description">' + data.TASK_DESCRIPTION + '</div>' +
+            '<div class="message-content"><span>Photos: </span>' +
+            '<div class="message-content">' + imgsOutput + '</div>' +
+            '</div>' +
+			 '<div class="message-content"><span> </span>' +
+            '</div>' + '<span><button class="btn btn-primary btn-sm" id="btn_editTaskProj" type="button"  value="' + data.TASK_ID + '" >Edit Task</button></span> &nbsp; <span><button class="btn btn-primary btn-sm" id="btn_delTask" type="button"  value="' + data.TASK_ID + '" >Delete Task</button></span>' + 
+            '</div>');
+			*/
+			
+			
+			
+			 $.ajax({
+            url: '<?php echo $url; ?>api2/projects/fetch-sub-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TASK_ID='+data.TASK_ID,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (datax) {
+				 
+				   if(datax.STATUS !== 'ERROR') {
+						var datay = JSON.parse(datax.DATA);
+			   taskDetail.append('<div class="mail-list" style="background: grey;color:white; padding:5px; margin-top:20px;"><h6 style="margin:0px">Sub Tasks List</h6></div>');
+			   			datay = datay.DATA;
+						 console.log('SubTask Detail:',datay);		
+						 var tasktype = 'TODO';						
+						for (var z = 0; z < datay.length; z++) {
+							
+							if(datay[z].DUE_DATE=="0" || datay[z].DUE_DATE == "")
+							{
+								tasktype = 'TODO';
+							} 
+							else 
+							{ 
+								tasktype = 'Due:'+convertDate(datay[z].DUE_DATE);
+							}
+							taskDetail.append('<div class="row" onclick="funShowSubTaskDetail('+datay[z].ASSIGNED_ID+','+ datay[z].TASK_ID+');" style="cursor:pointer"><div  style="border:1px solid grey; padding:5px; width:100%; clear:both; height:70px; margin:2px 15px"><div style="clear:both;"><div style="float:left; margin:2px;"><strong>TITLE:</strong> &nbsp; ' + datay[z].TASK_TITLE + '</div><div style="float:right; margin:2px;"><strong>STATUS:</strong> &nbsp; '+datay[z].TASK_STATUS+'</div></div><div style="clear:both;"><div style="float:left;"><strong>Assigned:</strong> &nbsp; '+ datay[z].FULL_NAME+'</div><div style="float:right; margin:2px;"><strong>TYPE:</strong> &nbsp; ' +tasktype + '</div></div></div></div>');
+						}
+						
+					} 
+							
+            }
+			
+        });
+    }
+	
+	function funShowSubTaskDetail(aid,sTask_ID)
 	{
 		 $.ajax({
             url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + sTask_ID + '&OBJECT_TYPE=task',
@@ -2003,7 +2657,7 @@ $.ajax({
             success: function (data) {
                 if(data.STATUS === 'SUCCESS') {
 					//console.log(data.DATA);
-                   showProjTaskDetail(data.DATA)
+                   showProjSubTaskDetail(aid,data.DATA)
                 }
             }
         });
@@ -2043,7 +2697,10 @@ $.ajax({
     }
 	
 	function funGetTaskAssignedMeUsersDue(pid) {
-        var url = '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDME&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&CREATOR_ID='+pid;
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDME&CURRENT_DATE='+dateStr2+'&CREATOR_ID='+pid;
         showAssignMeNewDue(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2067,7 +2724,10 @@ $.ajax({
         }
             }
         }); 
-        var url = '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDME&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&CREATOR_ID='+pid;
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDME&CURRENT_DATE='+dateStr2+'&CREATOR_ID='+pid;
         showAssignMeNewRep(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2126,7 +2786,10 @@ $.ajax({
         activeTab($(this), $('#assignMe'));
     }
 		function funGetTaskAssignedOtherUsersDue(pid) {
-        var url = '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDOTHERS&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&ASSIGNED_ID='+pid;
+			 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+			
+        var url = '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDOTHERS&CURRENT_DATE='+dateStr2+'&ASSIGNED_ID='+pid;
         showAssignOtherNewDue(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2151,9 +2814,10 @@ $.ajax({
             }
         }); 
 		
-
+ var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
 		
-        var url = '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDOTHERS&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&ASSIGNED_ID='+pid;
+        var url = '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERASSIGNEDOTHERS&CURRENT_DATE='+dateStr2+'&ASSIGNED_ID='+pid;
         showAssignOtherNewRep(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2215,7 +2879,9 @@ $.ajax({
     }
 	
 	function funGetTaskCCUsersDDDue(pid) {
-        var url = 'api2/tasks/fetch-only-cc-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCUSERDUE&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&CREATOR_ID='+pid;
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+        var url = 'api2/tasks/fetch-only-cc-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCUSERDUE&CURRENT_DATE='+dateStr2+'&CREATOR_ID='+pid;
         showCCtaskDDNewDue(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2240,9 +2906,10 @@ $.ajax({
             }
         }); 
 		
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
 		
-		
-        var url = '<?php echo $url; ?>api2/tasks/fetch-only-cc-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCUSERREP&CURRENT_DATE=<?php echo date('Y-m-d'); ?>&CREATOR_ID='+pid;
+        var url = '<?php echo $url; ?>api2/tasks/fetch-only-cc-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=CCUSERREP&CURRENT_DATE='+dateStr2+'&CREATOR_ID='+pid;
         showCCtaskDDNewRep(url, 1, 'tasks');
 
         activeTab($(this), $('#assignMe'));
@@ -2341,8 +3008,10 @@ $.ajax({
 	 }
  function showAssignOthersUsersListDD()
 	 {
+		  var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
 		 $.ajax({
-            url:  '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+            url:  '<?php echo $url; ?>api2/tasks/fetch-others-tasks-dd?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE='+dateStr2,
             type: 'GET',
             dataType: 'json',
             cache: false,
@@ -2376,8 +3045,10 @@ $.ajax({
 	 	
 function showAssignMeUsersListDD()
 	 {
+		  var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
 		 $.ajax({
-            url:  '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+            url:  '<?php echo $url; ?>api2/tasks/fetch-me-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE='+dateStr2,
             type: 'GET',
             dataType: 'json',
             cache: false,
@@ -2410,8 +3081,13 @@ function showAssignMeUsersListDD()
 	 }
 function showCCtaskUsersListDD()
 	 {
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        //var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		 
 		 $.ajax({
-	 url : '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-users?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+	 url : '<?php echo $url; ?>api2/tasks/fetch-cc-due-tasks-users?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=USERSLIST&CURRENT_DATE='+dateStr2,
             type: 'GET',
             dataType: 'json',
             cache: false,
@@ -2440,7 +3116,7 @@ function showCCtaskUsersListDD()
         }); 
 	 }
 
-function funshowProjectTasks(PROJECT_ID,PROJECT_NAME)
+function funshowProjectTasks(PROJECT_ID,PROJECT_NAME,CREATOR_ID)
 {	
 $('#breadcrumb').html('Home &raquo; My Projects &raquo; '+PROJECT_NAME);	 
 
@@ -2454,7 +3130,15 @@ $('#breadcrumb').html('Home &raquo; My Projects &raquo; '+PROJECT_NAME);
 					taskList.empty();
 				   if(datax.STATUS !== 'ERROR') {
 						var data = JSON.parse(datax.DATA);
-			   taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Projects Tasks List</h6></div>');
+						if(CREATOR_ID == <?php echo $_SESSION['logged_in']['USER_ID']; ?>)
+						{
+			   taskList.append('<div class="mail-list" style="background: grey;color:white; clear:both;"><div class="row" style="width:100%; margin:0px; padding:0px;"><div class="col-8"><h6 style="margin:0px; float:left; padding:5px 0px;">Projects Tasks List</h6></div><div class="col-4"><span style="float:right;"><img src="assets/images/add-member.png" style="padding:0px; margin:0px;cursor:pointer;" title="Add Project Member" id="addMemberProject" data-pname="'+PROJECT_NAME+'" data-pid="'+PROJECT_ID+'" /></span></div></div></div>');
+						}
+						else
+						{
+			    taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Projects Tasks List</h6></div>');
+						}
+				
 						 console.log(data);		
 						 var tasktype = 'TODO';
 						 
@@ -2472,7 +3156,7 @@ $('#breadcrumb').html('Home &raquo; My Projects &raquo; '+PROJECT_NAME);
 							if(data[i].TASK_STATUS == 'COMPLETED')  clrgreen = 'style="color:green;"';
 								if(data[i].DUE_DATE=="0" || data[i].DUE_DATE == ""){tasktype = 'TODO';} else { tasktype = 'Date:'+convertDate(data[i].DUE_DATE);}
 								
-							taskList.append('<div class="mail-list taskDetailsProj" data-task_id="' + data[i].TASK_ID + '">' +
+							taskList.append('<div class="mail-list taskDetailsProj" data-assigned_id="' + data[i].ASSIGNED_ID + '" data-task_id="' + data[i].TASK_ID + '">' +
 								'<div class="content">' +
 								'<p class="message_text" '+clrgreen+'>' + data[i].TASK_TITLE + '</p>' +
 								'<p class="message_text" style="font-size:12px; color:#666;">Assigned: '+ data[i].FULL_NAME+'</p>' +
@@ -2483,7 +3167,14 @@ $('#breadcrumb').html('Home &raquo; My Projects &raquo; '+PROJECT_NAME);
 						
 					} else {
 						taskList.empty();
-						 taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Projects Tasks List</h6></div>');
+						if(CREATOR_ID == <?php echo $_SESSION['logged_in']['USER_ID']; ?>)
+						{
+			   taskList.append('<div class="mail-list" style="background: grey;color:white; clear:both;"><div class="row" style="width:100%; margin:0px; padding:0px;"><div class="col-8"><h6 style="margin:0px; float:left; padding:5px 0px;">Projects Tasks List</h6></div><div class="col-4"><span style="float:right;"><img src="assets/images/add-member.png" style="padding:0px; margin:0px;cursor:pointer;" title="Add Project Member" id="addMemberProject"  data-pname="'+PROJECT_NAME+'" data-pid="'+PROJECT_ID+'" /></span></div></div></div>');
+						}
+						else
+						{
+			    taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Projects Tasks List</h6></div>');
+						}
 						taskList.append('<div class="error">No Project Task Found!</div>')
 					}
 							
@@ -2561,6 +3252,116 @@ var seleteduser = "";
 	activeTab($(this), 0);
 
 }
+
+
+function funshowUsersShipmentsOnly(uid,customer_name)
+{	
+ 	//console.log(uid);
+	//console.log(customer_name);
+	//return false;
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				showTaskListShipmentsRedOnly(data,customer_name);
+				showTaskListShipmentsGreenOnly(data,customer_name);
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
+function funshowUsersShipmentsCustomers(uid)
+{	
+
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group-customers?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();			
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				console.log('Rafiq-Testin>>>>>>>>>>>>>>>>',data);
+				
+				showTaskListShipmentsCustomers(data,uid,seleteduser);
+				
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
 
 function funshowUsersShipmentsSearched(keyValue)
 {
@@ -2692,7 +3493,7 @@ function showAssignMeUsersList()
 				var bgclr = ' background:rgba(237, 242, 249, 0.77);';
 			for (var i = 0; i < data.length; i++) {
 				if(i%2==0) { bgclr = ' background:rgba(255, 255, 255, 0.8);'; } else { bgclr = ' background:rgba(237, 242, 249, 0.77);'; }
-			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
+			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
             }
 			submenuShipmentUsers.append('</ul>');
 			}
@@ -2759,6 +3560,29 @@ function showSearchTaskListShipmentsWhite(d)
 	$('#totalsearched').text(ctrd);//<span id="totalsearched">
 }
 
+function showTaskListShipmentsCustomers(d, uid, seleteduser)
+{
+	var ctrd = 0;
+	
+	<?php /*?>if(d.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found Approved with Final Status Pending!</h6></div>');
+	}<?php */?>	
+	taskList.append('<div class="mail-list" style="background: white;color:darkblue;"><h6 style="margin:0px">SELECTED USER : <strong>'+seleteduser+'</strong></h6></div>');
+	
+	for (var i = 0; i < d.length; i++) {
+		ctrd++;
+		//console.log(d[i].CUSTOMER_NAME);
+		
+		var fcusname = "funshowUsersShipmentsOnly("+uid+",'"+d[i].CUSTOMER_NAME+"');";//d[i].CUSTOMER_NAME;
+		
+		
+		taskList.append('<div class="mail-list" style="background: grey;color:white;clear: both;" onclick="' + fcusname + '"><h6 style="margin:0px"><strong>' + d[i].CUSTOMER_NAME + '</strong></h6><span  style="color:#fff; text-align:right; position:absolute; right:10px;"> Total Invoices : ' + d[i].total + ' ( $ ' + d[i].ptotal + ')</span></div>');		
+	}
+	if(ctrd == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsWhite(d)
 {
 	var ctrd = 0;
@@ -2821,6 +3645,39 @@ function showTaskListShipmentsRed(dy)
 		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
 	}
 }
+function showTaskListShipmentsRedOnly(dy,cname)
+{
+	var ctrdy = 0;
+	//console.log(dy);
+	taskList.append('<div class="mail-list" style="background:#ad0000;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - PENDING</h6></div>');
+<?php /*?>	if(dy.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+<?php */?>
+	for (var i = 0; i < dy.length; i++) {	
+		console.log(cname +"=="+dy[i].CUSTOMER_NAME);
+		if(cname != dy[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dy[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dy[i].FINAL_STATUS=="PENDING" ){
+			ctrdy++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dy[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#ad0000;">' + advanceRMA + ' By ' + dy[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + dy[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#ad0000;">INVOICE# ' + dy[i].INVOICE_NUMBER + '  PRICE $ '+ dy[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + convertDate(dy[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#ad0000;">'+dy[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdy == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsGreen(dx)
 {
 	var ctrdx = 0;
@@ -2848,6 +3705,37 @@ function showTaskListShipmentsGreen(dx)
 		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
 	}
 }
+
+function showTaskListShipmentsGreenOnly(dx,cname)
+{
+	var ctrdx = 0;
+	//console.log(dx);
+	taskList.append('<div class="mail-list" style="background:#038912;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - RECEIVED</h6></div>');
+	
+	for (var i = 0; i < dx.length; i++) {	
+		console.log(cname +"=="+dx[i].CUSTOMER_NAME);
+		if(cname != dx[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dx[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dx[i].FINAL_STATUS=="RECEIVED" ){
+			ctrdx++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dx[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#038912;">' + advanceRMA + ' By ' + dx[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#038912;">' + dx[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#038912;">INVOICE# ' + dx[i].INVOICE_NUMBER + '  PRICE $ '+ dx[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#038912;">' + convertDate(dx[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#038912;">'+dx[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdx == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
+	}
+}
+
 
 function showTaskListShipmentsRedSearched(dy)
 {
@@ -3022,6 +3910,182 @@ function showTaskListShipmentsGreenSearched(dx)
 		addNewPersonalTask2()
      });
 
+	$(document).on('click', '#delProject', function() {
+		var PROJECT_NAME = $(this).data('pname');
+		var PROJECT_ID = $(this).data('pid');
+		if(confirm('Are you sure, you want to delete Complete Project of "'+PROJECT_NAME+'" of Project ID:'+PROJECT_ID+'?'))
+		{
+			$.ajax({
+        url: '<?php echo $url; ?>api2/projects/delete',
+        type: 'POST',
+		contentType:'application/x-www-form-urlencoded',
+        data:"PROJECT_ID="+PROJECT_ID,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+				if(data.STATUS !== 'ERROR') 
+				{
+					taskList.empty();					
+					taskList.append('<div class="error">Project: ['+PROJECT_NAME+'] deleted successfully! </div>')
+					taskDetail.empty();			   		
+					//taskDetail.append('<div class="error">Error in Adding New Project!</div>')
+					//alert('lnkShip_'+PROJECT_ID);					
+					$('a#lnkShip_'+PROJECT_ID).closest('li').remove();
+					window.scrollTo(0, 0);
+				} 
+				else 
+				{
+					taskList.empty();					
+					taskList.append('<div class="error">Error in Deletion of Project: ['+PROJECT_NAME+']! Please contact Adminsitrator! </div>')
+					taskDetail.empty();	
+				}
+                  
+            }
+		});
+		}
+		
+	
+
+     });
+
+$(document).on('click', '#addMemberProject', function() {
+		//alert($(this).data('pid'));
+		/////////////// start personal task start
+	//taskList.append('<div class="content"  style="padding:10px;"><p class="message_text" style="color:green;" >Add New Indivisual Task which includes creation new task, assign to and cc tasks to TaskPlanner Users.</p></div>');			//
+	taskDetail.empty();
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_newProjectMember" name="frm_newProjectMember" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Add Project Member</h2></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="project">Project Name</label><input type="text" class="form-control" id="projectName" name=projectName" value="'+$(this).data('pname')+'" readonly><input type="hidden" name="PROJECT_IDX" id="PROJECT_IDX" value="'+$(this).data('pid')+'" /></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="AUTO_ASSIGNED_ID">Select Member</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="" ><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="Creator">Added By</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="Ziad Minhas " readonly></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" type="submit" id="btn_submitProjectMember" name="btn_submitProjectMember" >Add Project Member</button></div></div>' +		   
+            '</div></form></div>'
+        );
+		
+  $( "#AUTO_ASSIGNED_ID" ).autocomplete({	
+  source: names
+});
+
+   $( "#AUTO_CC" ).autocomplete({	
+  source: names
+});
+
+
+  
+window.addEventListener("click", function(event) {
+  var checkboxes = document.getElementsByName('funnel[]'),
+    selectall = document.getElementById('selectall');
+  for (var i = 0; i < checkboxes.length; i++) {
+    checkboxes[i].addEventListener('change', function() {
+      //Conver to array
+      var inputList = Array.prototype.slice.call(checkboxes);
+
+      //Set checked  property of selectall input
+      selectall.checked = inputList.every(function(c) {
+        return c.checked;
+      });
+    });
+  }
+  if(selectall){
+  selectall.addEventListener('change', function() {
+    for (var i = 0; i < checkboxes.length; i++) {
+      checkboxes[i].checked = selectall.checked;
+    }
+  });
+  }
+});
+   
+
+		////////////////// end personal task ends
+
+	
+     });
+	 
+$(document).on('click', '#addProjectTask', function() {
+		//alert($(this).data('pid'));
+		/////////////// start personal task start
+	//taskList.append('<div class="content"  style="padding:10px;"><p class="message_text" style="color:green;" >Add New Indivisual Task which includes creation new task, assign to and cc tasks to TaskPlanner Users.</p></div>');			//
+	taskDetail.empty();
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_newProjectTask" name="frm_newProjectTask" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Add Project Task</h2></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="project">Project Name</label><input type="text" class="form-control" id="projectName" name=projectName" value="'+$(this).data('pname')+'" readonly><input type="hidden" name="PROJECT_IDX" id="PROJECT_IDX" value="'+$(this).data('pid')+'" /></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="" ><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="" ></div></div>' +		   
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">By</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="Ziad Minhas " readonly></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" type="submit" id="btn_submitProjectTask" name="btn_submitProjectTask" >Add Project Task</button></div></div>' +		   
+            '</div></form></div>'
+        );
+		
+  $( "#AUTO_ASSIGNED_ID" ).autocomplete({	
+  source: names
+});
+
+   $( "#AUTO_CC" ).autocomplete({	
+  source: names
+});
+
+
+  
+window.addEventListener("click", function(event) {
+  var checkboxes = document.getElementsByName('funnel[]'),
+    selectall = document.getElementById('selectall');
+  for (var i = 0; i < checkboxes.length; i++) {
+    checkboxes[i].addEventListener('change', function() {
+      //Conver to array
+      var inputList = Array.prototype.slice.call(checkboxes);
+
+      //Set checked  property of selectall input
+      selectall.checked = inputList.every(function(c) {
+        return c.checked;
+      });
+    });
+  }
+  if(selectall){
+  selectall.addEventListener('change', function() {
+    for (var i = 0; i < checkboxes.length; i++) {
+      checkboxes[i].checked = selectall.checked;
+    }
+  });
+  }
+});
+   
+
+		////////////////// end personal task ends
+
+	
+     });
+$(document).on('click', '#addProjectSubTask', function() {
+		//alert($(this).data('pid')+' '+$(this).data('pname'));
+		//alert(this.value);
+		/////////////// start personal task start
+	//taskList.append('<div class="content"  style="padding:10px;"><p class="message_text" style="color:green;" >Add New Indivisual Task which includes creation new task, assign to and cc tasks to TaskPlanner Users.</p></div>');			//
+	taskDetail.empty();
+	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_newProjectSubTask" name="frm_newProjectSubTask" enctype="multipart/form-data" method="post" onsubmit="return false;">' +			
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Add Sub Task</h2></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="project">Project Name</label><input type="text" class="form-control" id="projectName" name=projectName" value="'+$(this).data('pname')+'" readonly><input type="hidden" name="PROJECT_IDX" id="PROJECT_IDX" value="'+$(this).data('pid')+'" /></div><div class="col-md-6"><label for="project">Parent Task ID</label><input type="text" class="form-control" id="pid" name=pid" value="'+this.value+'" readonly><input type="hidden" name="TASK_IDX" id="TASK_IDX" value="'+this.value+'" /></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Sub Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="" ><div class="valid-feedback">Looks good!</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="" ></div></div>' +		   
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">By</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
+		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" type="submit" id="btn_submitProjectSubTask" name="btn_submitProjectSubTask" >Add Sub Task</button></div></div>' +		   
+            '</div></form></div>'
+        );
+		
+  $( "#AUTO_ASSIGNED_ID" ).autocomplete({	
+  source: names
+});
+
+   $( "#AUTO_CC" ).autocomplete({	
+  source: names
+});
+
+	
+     });
+
 	/* rafiq create new personal task # form  */ //addNewProjects
 	$(document).on('click', '#addIndivisualTask', function() {
 		/////////////// start personal task start
@@ -3032,11 +4096,12 @@ function showTaskListShipmentsGreenSearched(dx)
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="AUTO_CC">CC Member</label><input type="text" class="form-control" id="AUTO_CC" name="AUTO_CC" value="" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" type="submit" id="btn_submitIndivisualTask" name="btn_submitIndivisualTask" >Add Indivisual Task</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -3102,66 +4167,16 @@ var seleteduser = "";
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="'+seleteduser+'" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="AUTO_CC">CC Member</label><input type="text" class="form-control" id="AUTO_CC" name="AUTO_CC" value="" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_submitIndivisualTask" name="btn_submitIndivisualTask" >Add Indivisual Task</button></div></div>' +		   
             '</div></form></div>'
         );
 		
-		/*
 		
-  taskDetail.append('<div class="container-fluid" id="xyz2"><h2>Add New Indivisual Task</h2><form  id="frm_newIndivisualTask" name="frm_newIndivisualTask" enctype="multipart/form-data" method="post" onsubmit="return false;">');
-
- taskDetail.append(' <div id="abc2"><div class="form-row"><div class="col-md-4 mb-3"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="< ?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly><div class="valid-feedback">Looks good!</div></div><div class="col-md-4 mb-3"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="'+seleteduser+'" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-4 mb-3"><label for="AUTO_CC">CC Member</label><input type="text" class="form-control" id="AUTO_CC" name="AUTO_CC" value="" ></div></div></div>');
-  
-  taskDetail.append('<div class="form-row">'+
-  '<div class="col-md-5 mb-3"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div>'+
-  	'</div>'+	
-	'<div class="col-md-4 mb-3"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="< ?php echo date("Y-m-d"); ?>" ><div class="valid-feedback">Looks good!</div>'+
-	'</div>'+
-	'<div class="col-md-3 mb-3"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="< ?php echo '00:00';?>" ></div>'+
-	'</div>'+
-  '</div>'+  
-'<div class="form-row">' +  
-  '<div class="col-md-12 mb-3"><label for="validationCustom03">Description</label><textarea type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Add a TO-DO here" ></textarea><div class="invalid-feedback">Please provide description.</div>'+
-	'</div>'+
-'</div>'+
-  '<div class="form-row"><div class="col-md-12 mb-3">'+
- '<input type="file" name="TASK_IMAGES[]" multiple >'+
- '</div></div><div class="form-row"><div class="col-md-2"> </div>'+
-  '<div class="col-md-3"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6">'+
-  '<label class="custom-control-label" for="selectall">Every Day</label></div></div>'+
- '<div class="col-md-3"><div class="custom-control custom-checkbox">'+
- '<input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0">'+
-' <label class="custom-control-label" for="everyMonday">Every Monday</label></div></div>'+
-  '<div class="col-md-3"><div class="custom-control custom-checkbox">'+
-  '<input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1">'+
- ' <label class="custom-control-label" for="everyTuesday">Every Tuesday</label>'+
-'</div></div><div class="col-md-1"> </div></div><div class="form-row"><div class="col-md-2"> </div><div class="col-md-3"> '+
-'<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2">'+
-'<label class="custom-control-label" for="everyWednesday">Every Wednesday</label>'+
-  '</div></div><div class="col-md-3"> '+
-'<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3">'+
-'<label class="custom-control-label" for="everyThursday">Every Thursday</label>'+
-  '</div></div><div class="col-md-3"><div class="custom-control custom-checkbox">'+
-    '<input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4">'+
-    '<label class="custom-control-label" for="everyFriday">Every Friday</label></div></div><div class="col-md-1"> </div></div>'+
-  '<div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-   '<input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5">'+
-    '<label class="custom-control-label" for="everySaturday">Every Saturday</label></div></div><div class="col-md-3 mb-3"> '+
-'<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6">'+
-    '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
-  '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7">'+
-   ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
-  '</div></div><div class="col-md-1 mb-3"> </div>'+
-  '</div>'+  
-  '<div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
-  '<button class="btn btn-primary btn-sm" id="btn_submitIndivisualTask" name="btn_submitIndivisualTask" type="submit" >Add Personal Task</button></div></div><div class="col-md-2 mb-3"> </div></div></form></div>');
-  */
   
    $( "#AUTO_ASSIGNED_ID" ).autocomplete({	 source: names });
 
@@ -3228,11 +4243,11 @@ var seleteduser = "";
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="'+seleteduser+'" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="AUTO_CC">CC Member</label><input type="text" class="form-control" id="AUTO_CC" name="AUTO_CC" value="" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="<?php echo date("Y-m-d"); ?>" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="<?php echo '00:00';?>" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_submitIndivisualTask" name="btn_submitIndivisualTask" >Add Indivisual Task</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -3281,7 +4296,7 @@ var seleteduser = "";
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6">'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7">'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7">'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div>'+  
@@ -3341,11 +4356,11 @@ window.addEventListener("click", function(event) {
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="AUTO_ASSIGNED_ID">Assigned To</label><input type="text" class="form-control" id="AUTO_ASSIGNED_ID" name="AUTO_ASSIGNED_ID" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="AUTO_CC">CC Member</label><input type="text" class="form-control" id="AUTO_CC" name="AUTO_CC" value="" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="<?php echo date("Y-m-d"); ?>" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="<?php echo '00:00';?>" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" type="submit" id="btn_submitIndivisualTask" name="btn_submitIndivisualTask" >Add Indivisual Task</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -3396,7 +4411,7 @@ window.addEventListener("click", function(event) {
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6">'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7">'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7">'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div>'+  
@@ -3443,90 +4458,59 @@ window.addEventListener("click", function(event) {
 	
      });
 //	//TASK_TITLE, CREATOR_ID, PROJECT_ID, PARENT_TASK_ID, ASSIGNED_ID, CREATED_DATE, DUE_DATE, CC
- $(document).on('click', '#btn_submitIndivisualTask', function() {  
-
-var REPEAT_INTERVAL = $.map($('input[name="funnel[]"]:checked'), function(c){return c.value; });
-var  TASK_TITLE = $('#validationCustom01').val();
-var  TASK_DESCRIPTION = $('#validationCustom03').val();
-//2019-01-11 14:43:00
-var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
-var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
-
-var  DUE_DATE_DT = "";
-var DUE_DATE = "";
-if(dat != "")
-{
+$(document).on('click', '#btn_submitIndivisualTask', function() {
+	var REPEAT_INTERVAL = $.map($('input[name="funnel[]"]:checked'), function(c){return c.value; });
+	var  TASK_TITLE = $('#validationCustom01').val();
+	var  TASK_DESCRIPTION = $('#validationCustom03').val();
+	//2019-01-11 14:43:00
+	var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
+	var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
+	var  DUE_DATE_DT = "";
+	var DUE_DATE = "";
+	if(dat != "")
+	{
+		DUE_DATE_DT = dat+' '+tim+':00';
+		if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
+		DUE_DATE = toTimestamp(DUE_DATE_DT);
+	}
+	//alert('DUE_DATE:'+DUE_DATE+', DUE_DATE_DT:'+DUE_DATE_DT);
+	var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+	if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
 	
-	DUE_DATE_DT = dat+' '+tim+':00';
-	if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
-	DUE_DATE = toTimestamp(DUE_DATE_DT);
-}
-//alert('DUE_DATE:'+DUE_DATE+', DUE_DATE_DT:'+DUE_DATE_DT);
-var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
-
-if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
-
-
-
-var  AUTO_ASSIGNED_ID = $('#AUTO_ASSIGNED_ID').val();
-var matches = [];
-if(AUTO_ASSIGNED_ID)
-{
-	AUTO_ASSIGNED_ID.replace(/\((.*?)\)/g, function(_, match){
-  	matches.push(match);
-	});
-}
-var  AUTO_CC= $('#AUTO_CC').val();
-var matches2 = [];
-if(AUTO_CC)
-{
-	AUTO_CC.replace(/\((.*?)\)/g, function(_, match){
-  	matches2.push(match);
-	});
-}
-if(matches == "")
-{
-	alert('Assigned To Field Missing!'); return false;
-}
-//frm_newIndivisualTask
-/*
-var form = $("#frm_newPersonalTask");
-console.log(form);
-var formData = new FormData(form[0]);
-formData.append('TASK_ID',TASK_ID);
-formData.append('TASK_TITLE',TASK_TITLE);
-formData.append('TASK_DESCRIPTION',TASK_DESCRIPTION);
-formData.append('DUE_DATE',DUE_DATE);
-formData.append('DUE_DATE_DT',DUE_DATE_DT);
-formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
-formData.append('CREATOR_ID',CREATOR_ID);
-formData.append('ASSIGNED_ID',ASSIGNED_ID);
- 
-$.ajax({
-       url: " < ?php echo $url; ?>api2/tasks/create/personal",
-        type: 'POST',
-		data: formData,
-		dataType: 'json',
-		contentType:false,
-		cache: false,
-		processData:false,
-*/
-
-var form = $("#frm_newIndivisualTask");
-console.log(form);
-var formData = new FormData(form[0]);
-formData.append('TASK_TITLE',TASK_TITLE);
-formData.append('TASK_DESCRIPTION',TASK_DESCRIPTION);
-formData.append('DUE_DATE',DUE_DATE);
-formData.append('DUE_DATE_DT',DUE_DATE_DT);
-formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
-formData.append('CREATOR_ID',CREATOR_ID);
-formData.append('ASSIGNED_ID',matches);
-formData.append('CC',matches2);
-formData.append('PROJECT_ID','');
-formData.append('PARENT_TASK_ID','');
-
-$.ajax({
+	var  AUTO_ASSIGNED_ID = $('#AUTO_ASSIGNED_ID').val();
+	var matches = [];
+	if(AUTO_ASSIGNED_ID)
+	{
+		AUTO_ASSIGNED_ID.replace(/\((.*?)\)/g, function(_, match){
+  		matches.push(match);
+		});
+	}
+	var  AUTO_CC= $('#AUTO_CC').val();
+	var matches2 = [];
+	if(AUTO_CC)
+	{
+		AUTO_CC.replace(/\((.*?)\)/g, function(_, match){
+  		matches2.push(match);
+		});
+	}
+	if(matches == "")
+	{
+		alert('Assigned To Field Missing!'); return false;
+	}
+	var form = $("#frm_newIndivisualTask");
+	console.log(form);
+	var formData = new FormData(form[0]);
+	formData.append('TASK_TITLE',TASK_TITLE);
+	formData.append('TASK_DESCRIPTION',TASK_DESCRIPTION);
+	formData.append('DUE_DATE',DUE_DATE);
+	formData.append('DUE_DATE_DT',DUE_DATE_DT);
+	formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
+	formData.append('CREATOR_ID',CREATOR_ID);
+	formData.append('ASSIGNED_ID',matches);
+	formData.append('CC',matches2);
+	formData.append('PROJECT_ID','');
+	formData.append('PARENT_TASK_ID','');
+	$.ajax({
        url: '<?php echo $url; ?>api2/tasks/create-task',
 	    type: 'POST',
 		data: formData,
@@ -3538,18 +4522,206 @@ $.ajax({
             alert(err.statusText);
         },
         success: function(data) {
-				
 				taskList.empty();
 				taskDetail.empty();			
 				taskDetail.append('<div class="success">Task Added Successfully!<p></p></div>');	
-				
-		
-		 
-		
-		 
+		}
+		});
+  });
 
-    	
-			
+$(document).on('click', '#btn_submitProjectTask', function() {
+	var REPEAT_INTERVAL = ""; //$.map($('input[name="funnel[]"]:checked'), function(c){return c.value; });
+	var  TASK_TITLE = $('#validationCustom01').val();
+	var  TASK_DESCRIPTION = $('#validationCustom03').val();
+	var  PROJECT_IDX = $('#PROJECT_IDX').val();
+	var  projectName = $('#projectName').val();
+	
+	//projectName
+	//alert(PROJECT_ID);
+	//2019-01-11 14:43:00
+	var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
+	if(dat == "")
+	{
+		alert('Due Date Missing!');
+		return false;
+	}
+	
+	var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
+	var  DUE_DATE_DT = "";
+	var DUE_DATE = "";
+	if(dat != "")
+	{
+		DUE_DATE_DT = dat+' '+tim+':00';
+		if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
+		DUE_DATE = toTimestamp(DUE_DATE_DT);
+	}
+	//alert('DUE_DATE:'+DUE_DATE+', DUE_DATE_DT:'+DUE_DATE_DT);
+	var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+	if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
+	
+	var  AUTO_ASSIGNED_ID = $('#AUTO_ASSIGNED_ID').val();
+	var matches = [];
+	if(AUTO_ASSIGNED_ID)
+	{
+		AUTO_ASSIGNED_ID.replace(/\((.*?)\)/g, function(_, match){
+  		matches.push(match);
+		});
+	}
+	if(matches == "")
+	{
+		alert('Assigned To Field Missing!'); return false;
+	}
+	var form = $("#frm_newProjectTask");
+	console.log(form);
+	var formData = new FormData(form[0]);
+	formData.append('TASK_TITLE',TASK_TITLE);
+	formData.append('TASK_DESCRIPTION',TASK_DESCRIPTION);
+	formData.append('DUE_DATE',DUE_DATE);
+	formData.append('DUE_DATE_DT',DUE_DATE_DT);
+	formData.append('CREATOR_ID',CREATOR_ID);
+	formData.append('ASSIGNED_ID',matches);
+	formData.append('PROJECT_ID',PROJECT_IDX);
+	formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
+	//formData.append('PARENT_TASK_ID','(NULL)');
+	formData.append('CC','');
+	$.ajax({
+       url: '<?php echo $url; ?>api2/tasks/create-ptask',
+	    type: 'POST',
+		data: formData,
+		dataType: 'json',
+		contentType:false,
+		cache: false,
+		processData:false,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+				taskList.empty();
+				taskDetail.empty();			
+				funshowProjectTasks(PROJECT_IDX,projectName,CREATOR_ID);
+				taskDetail.append('<div class="success">Project Task Added Successfully!<p></p></div>');
+		}
+		});
+  });
+  
+  $(document).on('click', '#btn_submitProjectMember', function() {
+	var  PROJECT_IDX = $('#PROJECT_IDX').val();
+	var  projectName = $('#projectName').val();
+	var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+
+	var  AUTO_ASSIGNED_ID = $('#AUTO_ASSIGNED_ID').val();
+	var matches = [];
+	if(AUTO_ASSIGNED_ID)
+	{
+		AUTO_ASSIGNED_ID.replace(/\((.*?)\)/g, function(_, match){
+  		matches.push(match);
+		});
+	}
+	if(matches == "")
+	{
+		alert('Member Field Missing!'); return false;
+	}
+	var form = $("#frm_newProjectMember");
+	console.log(form);
+	var formData = new FormData(form[0]);
+	formData.append('USER_ID',CREATOR_ID);
+	formData.append('USER_EMAIL',matches);
+	formData.append('PROJECT_ID',PROJECT_IDX);
+	formData.append('PROJECT_ROLE','MEMBER');
+	//PROJECT_ROLE
+	$.ajax({
+       url: '<?php echo $url; ?>api2/projects/members/add',
+	    type: 'POST',
+		data: formData,
+		dataType: 'json',
+		contentType:false,
+		cache: false,
+		processData:false,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+				taskList.empty();
+				taskDetail.empty();			
+				funshowProjectTasks(PROJECT_IDX,projectName,CREATOR_ID);
+				taskDetail.empty();
+				if(data.DATA.includes('already'))
+				{
+					taskDetail.append('<div class="error">Member Already Exist in Project!<p></p></div>');
+				}
+				else
+				{
+					taskDetail.append('<div class="success">Member addded successfully in the Project!<p></p></div>');
+				}
+		}
+		});
+  });
+  
+  $(document).on('click', '#btn_submitProjectSubTask', function() {
+	var REPEAT_INTERVAL = ""; //$.map($('input[name="funnel[]"]:checked'), function(c){return c.value; });
+	var  TASK_TITLE = $('#validationCustom01').val();
+	var  TASK_DESCRIPTION = $('#validationCustom03').val();
+	var  PROJECT_IDX = $('#PROJECT_IDX').val();
+	var  projectName = $('#projectName').val();
+	
+	//projectName
+	//alert(PROJECT_ID);
+	//2019-01-11 14:43:00
+	var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
+	var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
+	var  DUE_DATE_DT = "";
+	var DUE_DATE = "";
+	if(dat != "")
+	{
+		DUE_DATE_DT = dat+' '+tim+':00';
+		if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
+		DUE_DATE = toTimestamp(DUE_DATE_DT);
+	}
+	//alert('DUE_DATE:'+DUE_DATE+', DUE_DATE_DT:'+DUE_DATE_DT);
+	var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+	if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
+	
+	var  AUTO_ASSIGNED_ID = $('#AUTO_ASSIGNED_ID').val();
+	var matches = [];
+	if(AUTO_ASSIGNED_ID)
+	{
+		AUTO_ASSIGNED_ID.replace(/\((.*?)\)/g, function(_, match){
+  		matches.push(match);
+		});
+	}
+	if(matches == "")
+	{
+		alert('Assigned To Field Missing!'); return false;
+	}
+	var form = $("#frm_newProjectSubTask");
+	console.log(form);
+	var formData = new FormData(form[0]);
+	formData.append('TASK_TITLE',TASK_TITLE);
+	formData.append('TASK_DESCRIPTION',TASK_DESCRIPTION);
+	formData.append('DUE_DATE',DUE_DATE);
+	formData.append('DUE_DATE_DT',DUE_DATE_DT);
+	formData.append('CREATOR_ID',CREATOR_ID);
+	formData.append('ASSIGNED_ID',matches);
+	formData.append('PROJECT_ID',PROJECT_IDX);
+	formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
+	formData.append('PARENT_TASK_ID',document.frm_newProjectSubTask.TASK_IDX.value);
+	formData.append('CC','');
+	$.ajax({
+       url: '<?php echo $url; ?>api2/tasks/create-ptask',
+	    type: 'POST',
+		data: formData,
+		dataType: 'json',
+		contentType:false,
+		cache: false,
+		processData:false,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+				taskList.empty();
+				taskDetail.empty();			
+				funshowProjectTasks(PROJECT_IDX,projectName,CREATOR_ID);
+				taskDetail.append('<div class="success">Project Sub Task Added Successfully!<p></p></div>');
 		}
 		});
   });
@@ -3705,7 +4877,7 @@ if(tim == "")
 
 var DUE_DATE = toTimestamp(DUE_DATE_DT);
 
-//alert(DUE_DATE_DT);
+//alert(REPEAT_INTERVAL);
 var CREATOR_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
 var ASSIGNED_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
 
@@ -3724,7 +4896,8 @@ formData.append('DUE_DATE_DT',DUE_DATE_DT);
 formData.append('REPEAT_INTERVAL',REPEAT_INTERVAL);
 formData.append('CREATOR_ID',CREATOR_ID);
 formData.append('ASSIGNED_ID',ASSIGNED_ID);
- 
+ console.log('checking dates : due date->'+DUE_DATE+' == '+DUE_DATE_DT);
+	
 $.ajax({
        url: "<?php echo $url; ?>api2/tasks/create/personal",
         type: 'POST',
@@ -3870,7 +5043,7 @@ $.ajax({
            // console.log(data);	
 				
 			for (var i = 0; i < data.length; i++) {
-			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
+			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
             }
 			submenuShipmentUsers.append('</ul>');
 			
@@ -3982,12 +5155,9 @@ if(confirm("Are you sure to delete TaskID : "+TASK_ID))
 else
 	return false;
   });
-
-//btn_editTaskProj
- $(document).on('click', '#btn_editTaskProj', function() { 
+//funShowSubTaskDetail(45,2748);
+$(document).on('click', '#btn_editTaskProj', function() { 
 var  TASK_ID = this.value;
-alert('Edit Functionality is Pending.... Please wait'+TASK_ID);
-return false;
 var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
 $.ajax({
             url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + TASK_ID + '&OBJECT_TYPE=task',
@@ -3996,15 +5166,31 @@ $.ajax({
             cache: false,
             success: function (data) {
                 if(data.STATUS === 'SUCCESS') {
-                    showEditTaskDetail(data.DATA)
+                    showEditTaskDetailAll(data.DATA)
                 }
             }
         });
-		
-	
+
+  });
+ 
+ $(document).on('click', '#btn_editSubTaskProj', function() { 
+var  TASK_ID = this.value;
+var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:""; ?>;
+$.ajax({
+            url: '<?php echo $url; ?>api2/tasks/fetch-details?OBJECT_ID=' + TASK_ID + '&OBJECT_TYPE=task',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(data.STATUS === 'SUCCESS') {
+                    showEditSubTaskDetailAll(data.DATA)
+                }
+            }
+        });
 
   });
   
+ 
  $(document).on('click', '#btn_editTask', function() { 
 var  TASK_ID = this.value;
 //alert('Edit Functionality is Pending.... Please wait'+TASK_ID);
@@ -4145,7 +5331,7 @@ function toTimestamp(strDate){
 		var strbuttons = '';
 		if(data.SHIPMENT_STATUS == 'PENDING' || data.SHIPMENT_STATUS == 'REJECTED')
 		{
-			<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1) { ?>
+			<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1&&$_SESSION['logged_in']['IS_ADMIN_VIEWONLY']==0) { ?>
 			strbuttons = '&nbsp;<span><button class="btn btn-primary btn-sm" id="btn_acceptShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Accept Shipment</button></span>&nbsp;<span><button class="btn btn-primary btn-sm" id="btn_rejectShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Reject Shipment</button></span>';
 			<?php } ?>
 		}
@@ -4180,9 +5366,26 @@ function toTimestamp(strDate){
 		var createdate = convertDate(data.CREATED_DATE)
 				 if(createdate=="1 Jan 1970 5:0 AM"){createdate="";}
 				 if(createdate=="31 Dec 1969 6:0 PM"){createdate="";} // new added by rafiq
-				 
-				 
-		taskDetail.append('<div class="message-body">' +
+			
+					
+					<?php if(isset($_SESSION['logged_in']['SUPER_ADMIN'])&&$_SESSION['logged_in']['SUPER_ADMIN']==1&&$_SESSION['logged_in']['IS_ADMIN_VIEWONLY']==1) 
+					{
+					?>
+					taskDetail.append('<div class="message-body">' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_customer_name">Customer Name</label><input type="text" class="form-control" id="txt_customer_name" placeholder="Customer Name" value="' + data.CUSTOMER_NAME + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_invoice">Invoice No.</label><input type="text" class="form-control" id="txt_invoice" placeholder="Invoice" value="'+data.INVOICE_NUMBER+'" readonly="readonly" ></div></div>' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_category">Shipment Type</label><input type="text" class="form-control" id="txt_ship_category" placeholder="Shipment Category" value="' + data.SHIPMENT_CATEGORY + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_price">Price</label><input type="text" class="form-control" id="txt_price" placeholder="Price" value="'+data.SHIPMENT_TITLE+'" readonly="readonly" ></div></div>' +			
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_created_by">Creator</label><input type="text" class="form-control" id="txt_created_by" placeholder="Creator" value="'+data.FULL_NAME+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_created">Created on</label><input type="text" class="form-control" id="txt_created" placeholder="Created" value="'+createdate+'" readonly="readonly" ></div></div>' +
+			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_status">Shipment Status</label><input type="text" class="form-control" id="txt_ship_status" placeholder="Shipment Status" value="' + data.SHIPMENT_STATUS + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_final_status">Final Status</label><input type="text" class="form-control" id="txt_final_status" placeholder="Final Status" value="'+data.FINAL_STATUS+'" readonly="readonly" ></div></div>' +
+           '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_desc">Description</label><input type="text" class="form-control" id="txt_desc" placeholder="Description" value="'+data.SHIPMENT_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
+		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +'</div>'
+        );
+					<?php
+					}
+					else
+					{
+						?>
+					taskDetail.append('<div class="message-body">' +
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_customer_name">Customer Name</label><input type="text" class="form-control" id="txt_customer_name" placeholder="Customer Name" value="' + data.CUSTOMER_NAME + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_invoice">Invoice No.</label><input type="text" class="form-control" id="txt_invoice" placeholder="Invoice" value="'+data.INVOICE_NUMBER+'" readonly="readonly" ></div></div>' +
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_ship_category">Shipment Type</label><input type="text" class="form-control" id="txt_ship_category" placeholder="Shipment Category" value="' + data.SHIPMENT_CATEGORY + '" readonly="readonly" ></div><div class="col-md-6"><label for="txt_price">Price</label><input type="text" class="form-control" id="txt_price" placeholder="Price" value="'+data.SHIPMENT_TITLE+'" readonly="readonly" ></div></div>' +			
 			'<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_created_by">Creator</label><input type="text" class="form-control" id="txt_created_by" placeholder="Creator" value="'+data.FULL_NAME+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_created">Created on</label><input type="text" class="form-control" id="txt_created" placeholder="Created" value="'+createdate+'" readonly="readonly" ></div></div>' +
@@ -4193,6 +5396,13 @@ function toTimestamp(strDate){
 			'<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;">'+strbuttons+''+strshipbuttions+''+strpaymentrec+'&nbsp;<span><button class="btn btn-danger btn-sm" id="btn_delShipment" type="button"  value="' + data.SHIPMENT_ID + '" >Delete Shipment</button></span></div></div>' +		   
             '</div>'
         );
+					<?php
+					}
+					?>
+					
+					
+				 
+		
 		/*
 					
 						taskDetail.append('<div class="message-body">' +							
@@ -4257,7 +5467,7 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 					
 				//alert(data.MESSAGE);
 				
-				funshowUsersShipments(USER_ID);
+				funshowUsersShipmentsCustomers(USER_ID);
 				
 				
 		$('div#taskDetails div.message-body').attr("style","visibility:hidden; display:none");
@@ -4393,7 +5603,12 @@ else
   });
   
 function showDDTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+	var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+	
+    //    var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4410,7 +5625,12 @@ function showDDTasks(u, c, t) {
     }
 	
 	function showOnlyPersonalTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4427,7 +5647,12 @@ function showDDTasks(u, c, t) {
     }
 	
 	function showAssignMeTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4445,7 +5670,12 @@ function showDDTasks(u, c, t) {
 	
 	
 	 function showAssignOthersDD(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		 
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4661,7 +5891,12 @@ function showDDTasks(u, c, t) {
 
 	
 	 function showTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		 var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		 
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4678,7 +5913,12 @@ function showDDTasks(u, c, t) {
     }
 	
     function showAssignMeTasksDD(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4694,7 +5934,12 @@ function showDDTasks(u, c, t) {
         });
     }
 	function showAssignOthersTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4710,7 +5955,32 @@ function showDDTasks(u, c, t) {
         });
     }
 	function showPersonalTasksDDDue(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+		
+        $.ajax({
+            url: u + url,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(t === 'tasks')
+                   createPersonalTaskListDDDue(data);           
+            }
+        });
+    }
+	
+	function showProjectTasksDDDue(u, c, t) {
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4719,12 +5989,17 @@ function showDDTasks(u, c, t) {
             cache: false,
             success: function (data) {
                 if(t === 'tasks')
-                    createPersonalTaskListDDDue(data);               
+					 createProjectTaskListDDDue(data); 
+                                   
             }
         });
     }
+	
 	function showPersonalTasksDDRep(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
 
         $.ajax({
             url: u + url,
@@ -4782,7 +6057,12 @@ function showDDTasks(u, c, t) {
         });
     }
 	function showCCTasksDD(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4798,7 +6078,12 @@ function showDDTasks(u, c, t) {
         });
     }
 	function showCCTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4814,7 +6099,12 @@ function showDDTasks(u, c, t) {
         });
     }
 	function showProjectTasks(u, c, t) {
-        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+		var date = new Date(); 
+		var dateStr2 =  date.getFullYear() + '-' + ('00' + (date.getMonth() + 1)).slice(-2) + '-' +  ('00' + date.getDate()).slice(-2) + ' ' +   ('00' + date.getHours()).slice(-2) + ':' + ('00' + date.getMinutes()).slice(-2) + ':' + ('00' + date.getSeconds()).slice(-2);
+		
+        var url = (c === 1) ? '&CURRENT_DATE='+dateStr2 : '';
+		
+        //var url = (c === 1) ? '&CURRENT_DATE=< ?php echo date('Y-m-d'); ?>' : '';
 
         $.ajax({
             url: u + url,
@@ -4871,11 +6161,11 @@ function timeSince(date) {
   var lefttime = Math.floor(seconds) * (-1);
   if((lefttime/3600) > 1)
   {	
-  	return Math.floor(lefttime/3600)+ " Hours left";
+  	return ""; //Math.floor(lefttime/3600)+ " Hours left";
   }
   else
   {
-	 return Math.floor(lefttime/60)+ " Minutes left"; 
+	 return ""; //Math.floor(lefttime/60)+ " Minutes left"; 
   }
 }
 
@@ -4956,8 +6246,12 @@ function toTimestamp(strDate){
 		    var strstyleDD=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
 			var timecheck = timeSince(new Date(duedatae));
 			if (timecheck = timecheck.includes("ago"))
-			{
+			{				
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 /*			
 var anchortag = '<a href="javascript:changeStatusDPNR(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;">Mark as Complete</a>';								
@@ -5020,6 +6314,50 @@ if(data[i].STATUS==1){notificationButton = '<img src="assets/images/btn-on.png" 
             taskList.append('<div class="error">' + d.MESSAGE + '</div>')
         }
     }
+	
+	function createProjectTaskListDDDue(d) {		
+		
+		var datax = d;
+		//console.log('rafiq =>',data);
+		
+		
+						var data = JSON.parse(datax.DATA);
+						
+			    taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Due Today Projects Tasks List</h6></div>');
+						
+				
+						 console.log(data);		
+						 var tasktype = 'TODO';
+						 
+						 
+						 data.sort(function(a, b){
+    var x = a.TASK_STATUS.toLowerCase();
+    var y = b.TASK_STATUS.toLowerCase();
+    if (x > y) {return -1;}
+    if (x < y) {return 1;}
+    return 0;
+  });
+						 
+						 var clrgreen = "";
+						for (var i = 0; i < data.length; i++) {
+							if(data[i].TASK_STATUS == 'COMPLETED')  clrgreen = 'style="color:green;"';
+								if(data[i].DUE_DATE=="0" || data[i].DUE_DATE == ""){tasktype = 'TODO';} else { tasktype = 'Date:'+convertDate(data[i].DUE_DATE);}
+								
+							taskList.append('<div class="mail-list taskDetailsProj" data-assigned_id="' + data[i].ASSIGNED_ID + '" data-task_id="' + data[i].TASK_ID + '">' +
+								'<div class="content">' +
+								'<p class="message_text" '+clrgreen+'>' + data[i].TASK_TITLE + '</p>' +
+								'<p class="message_text" style="font-size:12px; color:#666;">Assigned: '+ data[i].FULL_NAME+'</p>' +
+								'<p class="message_text">' +tasktype + '</p>' +
+								'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#000; font-size:12px;">Status:<br />'+data[i].TASK_STATUS+'</div>' +
+								'</div>');
+						}
+						
+					
+       
+       
+    }
+	
+	
 	function createPersonalTaskListDDRep(d) {
         taskList.empty();
        if(d.STATUS !== 'ERROR') {
@@ -5027,10 +6365,9 @@ if(data[i].STATUS==1){notificationButton = '<img src="assets/images/btn-on.png" 
    taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Due Today Repeated Personal Tasks</h6></div>');
              console.log(data);		
 			for (var i = 0; i < data.length; i++) {
-			 var duedatae = convertDate(data[i].DUE_DATE);
-			 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
-				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
-		//alert(toTimestamp(duedatae));
+				
+				
+			 var duedatae = data[i].DUE_DATE_DT;
 		
 		 var openvar = "";
 		  var closevar = "";
@@ -5096,9 +6433,14 @@ if(output == "") output = "Never";
 //console.log(timeSince(new Date(duedatae)));
 		    var strstyleDD=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
 			var timecheck = timeSince(new Date(duedatae));
-			if (timecheck = timecheck.includes("ago"))
+				console.log(timecheck);
+			if (timecheck)
 			{
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 			
 var anchortag = '<a href="javascript:changeStatusDD(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;"><img src="assets/images/mark-completed.gif" id="markascompleted'+data[i].TASK_ID+'" /></a>';								
@@ -6168,7 +7510,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
@@ -6187,7 +7531,7 @@ if(data[i].TASK_STATUS == 'COMPLETED')
                     '<div class="content">' +
 					'<div class="row"><div class="col-md-8"><p class="message_text" '+ strstyle +'>' + data[i].TASK_TITLE + '</p></div><div class="col-md-4"  style="text-align:right;padding:0px; margin:0px;">'+anchortag+'</div></div>' + 
 					'<div class="row"><div class="col-md-12"><p class="message_text" style="font-size:12px">' + output + '</p></div></div>' +
-					'<div class="row"><div class="col-md-6"><p class="message_text" style="font-size:12px">' + duedatae + '</p></div><div class="col-md-6" style="text-align:right;"><p class="message_text" style="font-size:12px"><strong>Status</strong>: ' + data[i].TASK_STATUS + '</p></div></div>' +
+					'<div class="row"><div class="col-md-4"><p class="message_text" style="font-size:12px">' + duedatae + '</p></div><div class="col-md-4"><span style="font-size:12px; color:#3b0edb">Send/View Messages(0)</span></div><div class="col-md-4" style="text-align:right;"><p class="message_text" style="font-size:12px"><strong>Status</strong>: ' + data[i].TASK_STATUS + '</p></div></div>' +
 					'</div></div>';
 				taskList.append(taskListNoRepeat);
 					
@@ -6505,7 +7849,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}				
@@ -6853,7 +8199,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
+ continue;																						  
+																						  }
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
@@ -7921,9 +9269,7 @@ for (var i = 0; i < arrayLength; i++) {
 }
 if(output == "") output += "Never";
 if(repint == "0,1,2,3,4,5,6") output = "Every Day";
-var duedatae = convertDate(data.DUE_DATE)
-				 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
-				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
+
 var createdatae = convertDate(data.CREATED_DATE)
 				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
 				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
@@ -7962,13 +9308,20 @@ var createdatae = convertDate(data.CREATED_DATE)
 			 '<div class="message-content"><span> </span>' +
             '</div>' + '<span><button class="btn btn-primary btn-sm" id="btn_editTask" type="button"  value="' + data.TASK_ID + '" >Edit Task</button></span> &nbsp; <span><button class="btn btn-primary btn-sm" id="btn_delTask" type="button"  value="' + data.TASK_ID + '" >Delete Task</button></span>' + 
             '</div>'
+			
         );
+		var d = new Date();
+var e = formatDate(d);
+
+alert(e);
 		*/
+	 var d = new Date(data.DUE_DATE_DT);
+
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+formatDate(d)+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTask" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -8018,9 +9371,8 @@ for (var i = 0; i < arrayLength; i++) {
 }
 if(output == "") output += "Never";
 if(repint == "0,1,2,3,4,5,6") output = "Every Day";
-var duedatae = convertDate(data.DUE_DATE)
-				 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
-				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
+var d = new Date(data.DUE_DATE_DT);
+		
 var createdatae = convertDate(data.CREATED_DATE)
 				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
 				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
@@ -8063,9 +9415,9 @@ var createdatae = convertDate(data.CREATED_DATE)
 		*/
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+formatDate(d)+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTask" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -8125,11 +9477,14 @@ var createdatae = convertDate(data.CREATED_DATE)
 		// console.log(data.IMAGES.length);
 		var imgsOutput = "";
 		var imgesArr = data.IMAGES;
+		imgsOutput += "<table><tr>";
 		for(var aa=0;aa<imgesArr.length;aa++)
 		{
 			//alert('< ?php echo $url; ?>');
-			imgsOutput += '<a data-fancybox="gallery" href="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'"  data-title="Photo" ><img src="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a>&nbsp; ';
+			imgsOutput += '<td style="vertical-align:bottom"><table><tr><td><a data-fancybox="gallery" href="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'"  data-title="Photo" ><img src="<?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a></td></tr></table></td>';
+			// delete image //imgsOutput += '<td style="vertical-align:bottom"><table><tr><td><a data-fancybox="gallery" href="< ?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'"  data-title="Photo" ><img src="< ?php echo $url; ?>'+imgesArr[aa]['TASK_IMAGE']+'" class="img-fluid" width="150"></a></td></tr><tr><td style="text-align:center;"><input type="button" value="Delete Image" class="btn btn-danger btn-sm" /></td></tr></table></td>';
 		}
+		imgsOutput += "</tr></table>";
 		// return false;
 		/*
         taskDetail.append('<div class="message-body">' +
@@ -8158,11 +9513,19 @@ var createdatae = convertDate(data.CREATED_DATE)
             '</div>'
         );
 		*/
+		 var d = new Date(data.DUE_DATE_DT);
+		 if(data.DUE_DATE_DT == null){
+			alert();
+			 d='';
+			}
+			else
+				d = formatDate(d);
+		 
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+d+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTaskOther" name="btn_editTaskOther" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -8256,11 +9619,21 @@ var createdatae = convertDate(data.CREATED_DATE)
             '</div>'
         );
 		*/
+		  var d = new Date(data.DUE_DATE_DT);
+		 
+		 if(data.DUE_DATE_DT==null)
+			 {
+				 alert('No Due Date Available! Please reset task or edit task!');
+				 d = '';
+			 }
+		 else
+			 d = formatDate(d);
+		 
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+d+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -8474,7 +9847,7 @@ var createdatae = convertDate(data.CREATED_DATE);
 		
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><input type="text" class="form-control" id="txt_task_desc" placeholder="Task Description" value="'+data.TASK_DESCRIPTION+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
@@ -8849,6 +10222,104 @@ $.ajax({
 
 	
 	}
+
+function changeStatusProjectTask(p,s)
+	{
+var TASK_ID  = s;
+var TASK_STATUS = document.frm_editStatusProjectTask.TASK_STATUS.value;
+//alert('line 313'+TASK_STATUS);	
+$.ajax({
+       url: '<?php echo $url; ?>api2/tasks/update-status',
+        type: 'POST',
+		contentType:'application/x-www-form-urlencoded',
+        data:"TASK_ID="+TASK_ID+"&STATUS="+TASK_STATUS,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+			//alert('Status Successfully Changed!');	 // wait for it		
+			//TaskPersonalNoRepFunction();
+			//taskDetail.empty();
+			showProjectTaskDetail(<?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:"0"; ?>,TASK_ID);
+		}
+		});
+
+	}
+	//changeProjectTaskAll
+	function changeProjectTaskAll(p,s)
+	{
+var TASK_ID  = s;
+var TASK_TITLE = document.frm_editProjectTaskAll.validationCustom01.value;
+var TASK_DESCRIPTION = document.frm_editProjectTaskAll.validationCustom03.value;
+var TASK_STATUS = document.frm_editProjectTaskAll.TASK_STATUS.value;
+	var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
+	var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
+	var  DUE_DATE_DT = "";
+	var DUE_DATE = "";
+	if(dat != "")
+	{
+		DUE_DATE_DT = dat+' '+tim+':00';
+		if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
+		DUE_DATE = toTimestamp(DUE_DATE_DT);
+	}
+if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
+
+//alert('line 313'+TASK_STATUS);	
+$.ajax({
+       url: '<?php echo $url; ?>api2/tasks/update-project-task',
+        type: 'POST',
+		contentType:'application/x-www-form-urlencoded',
+        data:"TASK_ID="+TASK_ID+"&STATUS="+TASK_STATUS+"&DUE_DATE="+DUE_DATE+"&DUE_DATE_DT="+DUE_DATE_DT+"&TASK_TITLE="+TASK_TITLE+"&TASK_DESCRIPTION="+TASK_DESCRIPTION,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+			//alert('Status Successfully Changed!');	 // wait for it		
+			//TaskPersonalNoRepFunction();
+			//taskDetail.empty();
+			showProjectTaskDetail(<?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:"0"; ?>,TASK_ID);
+		}
+		});
+
+	}
+
+function changeProjectSubTaskAll(p,s)
+	{
+var TASK_ID  = s;
+var TASK_TITLE = document.frm_editProjectTaskAll.validationCustom01.value;
+var TASK_DESCRIPTION = document.frm_editProjectTaskAll.validationCustom03.value;
+var TASK_STATUS = document.frm_editProjectTaskAll.TASK_STATUS.value;
+	var dat = $('#validationCustom02').val(); //document.frm_newIndivisualTask.validationCustom02.value;
+	var tim = $('#txttime').val();//document.frm_newIndivisualTask.txttime.value;
+	var  DUE_DATE_DT = "";
+	var DUE_DATE = "";
+	if(dat != "")
+	{
+		DUE_DATE_DT = dat+' '+tim+':00';
+		if(tim == "") {  DUE_DATE_DT = dat+' 00:00:00'; }
+		DUE_DATE = toTimestamp(DUE_DATE_DT);
+	}
+if(TASK_TITLE == "") { alert('Task Title Missing!'); return false;}
+
+//alert('line 313'+TASK_STATUS);	
+$.ajax({
+       url: '<?php echo $url; ?>api2/tasks/update-project-task',
+        type: 'POST',
+		contentType:'application/x-www-form-urlencoded',
+        data:"TASK_ID="+TASK_ID+"&STATUS="+TASK_STATUS+"&DUE_DATE="+DUE_DATE+"&DUE_DATE_DT="+DUE_DATE_DT+"&TASK_TITLE="+TASK_TITLE+"&TASK_DESCRIPTION="+TASK_DESCRIPTION,
+		error: function(err) {
+            alert(err.statusText);
+        },
+        success: function(data) {
+			//alert('Status Successfully Changed!');	 // wait for it		
+			//TaskPersonalNoRepFunction();
+			//taskDetail.empty();
+			showProjectSubTaskDetail(<?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['USER_ID']:"0"; ?>,TASK_ID);
+		}
+		});
+
+	}
+
 	//
 	function changeStatusDPRR(p,s)
 	{
@@ -9416,6 +10887,7 @@ $.ajax({
 	 function showEditTaskDetailOther(d) {
 	 var data = JSON.parse(d);
 	// alert(data.TASK_STATUS);
+		 /*
 		d1 = new Date(convertDate(data.DUE_DATE)); //CREATED_DATE
 		var dayr = ("0" + d1.getDate()).slice(-2);
 		var monr = ("0" + (d1.getMonth()+1)).slice(-2);
@@ -9429,16 +10901,21 @@ $.ajax({
 	       var secs = d1.getSeconds(); // => 51
 		    if(finaldate=="1970-01-01"){finaldate="";}
 		   
-		   var createdatae = convertDate(data.CREATED_DATE);
-		
-				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
-				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
-		   
 		   hrs = ('0' + hrs).slice(-2);
 		   mits = ('0' + mits).slice(-2);
 		   
 		   finaltime = [hrs,mits,].join(':');
+		*/
+		  var createdatae = convertDate(data.CREATED_DATE);
 		
+				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
+				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
+		 
+		 
+		 var duedatedt = data.DUE_DATE_DT;
+		 var fields = duedatedt.split(' ');		 
+		var finaldate = fields[0];
+		 var finaltime = fields[1];
 		
 		
 		var output = "";
@@ -9518,13 +10995,13 @@ cc_data = data.CC;
 	taskDetail.append('<div class="message-body"><div class="container-fluid" id="xyz2"><form  id="frm_editPersonalOTask" name="frm_editPersonalOTask" enctype="multipart/form-data" method="post" onsubmit="return false;"><input type="hidden" id="ASSIGNED_ID" name="ASSIGNED_ID" value="'+data.ASSIGNED_ID+'" /><input type="hidden" id="CC" name="CC" value="'+cc_data+'" />' +			
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Edit Assign to Other Task <button class="btn btn-primary btn-sm" id="btnp2" type="button" onclick="funSetCurDateTime();" >Set Priority</button></h2></div></div>' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="'+data.TASK_TITLE+'" required><div class="valid-feedback">Looks good!</div></div></div>' +
-   		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="' + data.TASK_DESCRIPTION + '" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+   		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" >' + data.TASK_DESCRIPTION + '</textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="' + finaldate + '" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="' + finaltime + '" ></div></div>' +		   
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="" value="'+createdatae+'" readonly="readonly" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="statusNow">Status</label><select class="custom-select browser-default" required="" id="TASK_STATUS" name="TASK_STATUS" ><option value="">Select</option><option value="OPEN" '+openvar+'>OPEN</option><option value="CLOSED" '+closevar+'>CLOSED</option><option value="COMPLETED" '+completevar+'>COMPLETED</option><option value="IN PROGRESS" '+inprogressvar+'>IN PROGRESS</option></select></div></div>' +		   
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6" '+everydaycheck+'><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0" '+mondaycheck+'><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1" '+tuesdaycheck+'><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2" '+wednesdaycheck+'><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3" '+thursdaycheck+'><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4" '+fridaycheck+'><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5" '+saturdaycheck+'><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6" '+sundaycheck+'><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7" '+monthcheck+'><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7" '+monthcheck+'><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_updateOtherTask" name="btn_updateOtherTask" value="'+data.TASK_ID+'" >Update Assign Other Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-info" type="button" style="width:200px;" id="btn_CancelTask" name="btn_CancelTask" onclick="showTaskDetailBackOther('+data.TASK_ID+');" >Cancel Update</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -9571,7 +11048,7 @@ cc_data = data.CC;
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6" '+sundaycheck+'>'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7" '+monthcheck+'>'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7" '+monthcheck+'>'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div><div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
@@ -9613,6 +11090,8 @@ window.addEventListener("click", function(event) {
 	 function showEditTaskDetail(d) {
 	 var data = JSON.parse(d);
 	// alert(data.TASK_STATUS);
+		 
+		 /*
 		d1 = new Date(convertDate(data.DUE_DATE));
 		var dayr = ("0" + d1.getDate()).slice(-2);
 		var monr = ("0" + (d1.getMonth()+1)).slice(-2);
@@ -9631,8 +11110,17 @@ window.addEventListener("click", function(event) {
 		   mits = ('0' + mits).slice(-2);
 		   
 		   finaltime = [hrs,mits,].join(':');
-		
-		
+		   
+		   var fields = input.split('~');
+
+var name = fields[0];
+var street = fields[1];
+		*/
+		 var duedatedt = data.DUE_DATE_DT;
+		 var fields = duedatedt.split(' ');		 
+		var finaldate = fields[0];
+		 var finaltime = fields[1];
+		// alert(finaldate +' = '+finaltime);
 		
 		var output = "";
 		 var repint = data.REPEAT_INTERVAL;
@@ -9707,11 +11195,11 @@ if(repint == "0,1,2,3,4,5,6"){ everydaycheck = " checked='checked'";}
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Edit Personal Task <button class="btn btn-primary btn-sm" id="btnp2" type="button" onclick="funSetCurDateTime();" >Set Priority</button></h2></div></div>' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="'+data.TASK_TITLE+'" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="' + finaldate + '" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="' + finaltime + '" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="' + data.TASK_DESCRIPTION + '" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" >' + data.TASK_DESCRIPTION + '</textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6" '+everydaycheck+'><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0" '+mondaycheck+'><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1" '+tuesdaycheck+'><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2" '+wednesdaycheck+'><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3" '+thursdaycheck+'><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4" '+fridaycheck+'><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5" '+saturdaycheck+'><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6" '+sundaycheck+'><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7" '+monthcheck+'><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7" '+monthcheck+'><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_updateTask" name="btn_updateTask" value="'+data.TASK_ID+'" >Update Personal Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-info" type="button" style="width:200px;" id="btn_CancelTask" name="btn_CancelTask" onclick="showTaskDetailBack('+data.TASK_ID+');" >Cancel Update</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -9758,7 +11246,7 @@ if(repint == "0,1,2,3,4,5,6"){ everydaycheck = " checked='checked'";}
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6" '+sundaycheck+'>'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7" '+monthcheck+'>'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7" '+monthcheck+'>'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div><div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
@@ -9810,11 +11298,11 @@ window.addEventListener("click", function(event) {
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Add New Personal Task <button class="btn btn-primary btn-sm" id="btnp2" type="button" onclick="funSetCurDateTime();" >Set Priority</button></h2></div></div>' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_submitPersonalTask" name="btn_submitPersonalTask" >Add Personal Task</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -9861,7 +11349,7 @@ window.addEventListener("click", function(event) {
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6">'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7">'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7">'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div><div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
@@ -9903,11 +11391,11 @@ window.addEventListener("click", function(event) {
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><h2>Add New Personal Task</h2></div></div>' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom01">Task Name</label><input type="text" class="form-control" id="validationCustom01" name=validationCustom01" placeholder="Task name" value="" required><div class="valid-feedback">Looks good!</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="validationCustom02">Due Date </label><input type="date" class="form-control" id="validationCustom02" name="validationCustom02" value="<?php echo date("Y-m-d"); ?>" ><div class="valid-feedback">Looks good!</div></div><div class="col-md-6"><label for="txttime">Due Time</label><input type="time" class="form-control" id="txttime" name="txttime" value="<?php echo '00:00';?>" ></div></div>' +		   
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><input type="text" class="form-control" id="validationCustom03" name="validationCustom03" placeholder="Task Description" value="" ><div class="invalid-feedback">Please provide description.</div></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="validationCustom03">Description</label><textarea class="form-control" id="validationCustom03" name="validationCustom03" ></textarea><div class="invalid-feedback">Please provide description.</div></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="TASK_IMAGES">Pictures</label> <br /><input type="file" name="TASK_IMAGES[]" multiple ></div><div class="col-md-6"><label for="Creator">Creator</label><input type="text" class="form-control" id="Creator" placeholder="Creator" value="<?php echo $_SESSION['logged_in']['FULL_NAME']; ?>" readonly></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="repeat">Repeat Task</label></div></div>' +
 		   '<div class="row" style="margin-top:5px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" id="selectall" value="0,1,2,3,4,5,6"><label class="custom-control-label" for="selectall">Every Day</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyMonday" value="0"><label class="custom-control-label" for="everyMonday">Every Monday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;" style="width:200px; float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyTuesday" value="1"><label class="custom-control-label" for="everyTuesday">Every Tuesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyWednesday" value="2"><label class="custom-control-label" for="everyWednesday">Every Wednesday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyThursday" value="3"><label class="custom-control-label" for="everyThursday">Every Thursday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input funnel" name="funnel[]" id="everyFriday" value="4"><label class="custom-control-label" for="everyFriday">Every Friday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySaturday" value="5"><label class="custom-control-label" for="everySaturday">Every Saturday</label></div><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6"><label class="custom-control-label" for="everySunday">Every Sunday</label></div></div></div>'+ 
-		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
+		   		   '<div class="row" style="margin-top:10px;"><div class="col-md-12"><div class="custom-control custom-checkbox" style="width:180px;float:left;"><input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7"><label class="custom-control-label" for="everyMonth">Every Month</label></div></div></div>'+
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-12" style="text-align:center;"><button class="btn btn-primary" type="submit" style="width:200px;" id="btn_submitPersonalTask" name="btn_submitPersonalTask" >Add Personal Task</button></div></div>' +		   
             '</div></form></div>'
         );
@@ -9953,7 +11441,7 @@ window.addEventListener("click", function(event) {
 '<div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="funnel[]" id="everySunday" value="6">'+
     '<label class="custom-control-label" for="everySunday">Every Sunday</label>'+
   '</div></div><div class="col-md-3 mb-3"><div class="custom-control custom-checkbox">'+
-     '<input type="checkbox" class="custom-control-input" name="" id="everyMonth" value="7">'+
+     '<input type="checkbox" class="custom-control-input" name="funnel[]"  id="everyMonth" value="7">'+
    ' <label class="custom-control-label" for="everyMonth">Every Month</label>'+
   '</div></div><div class="col-md-1 mb-3"> </div>'+
   '</div><div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
@@ -10216,8 +11704,13 @@ window.addEventListener("click", function(event) {
   '</div><div class="form-row"><div class="col-md-12 mb-3">'+
  '<input type="file" name="SHIPMENT_IMAGES[]" multiple >'+
  '</div></div>'+
-  '<div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
+   '<div class="form-row"><div class="col-md-2 mb-3"> </div><div class="col-md-8 mb-3"><div class="form-group">'+
   '<button class="btn btn-primary btn-sm" id="btn_submitAdvShipTask" type="submit" >Add Shipment Task</button></div></div><div class="col-md-2 mb-3"> </div></div></form></div>');
+  
+  
+  $( "#CUSTOMER_NAME" ).autocomplete({	
+  source: customers
+});
    
     }
 
@@ -10371,10 +11864,22 @@ function funActiveOnly(p,e)
 	$("#"+p).attr('aria-expanded','true');	
 */
 }
-	
+
+	function formatDate(date) {
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  var ampm = hours >= 12 ? 'pm' : 'am';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  minutes = minutes < 10 ? '0'+minutes : minutes;
+  var strTime = hours + ':' + minutes + ' ' + ampm;
+  return (date.getMonth()+1) + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+}
+
+
 	
 </script>
 
-
+ <script src="assets/dist/filepond.js"></script>
 </body>
 </html>

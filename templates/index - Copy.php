@@ -798,6 +798,47 @@ var totalcounter = 0;
 								document.getElementById("totaltaskscountDD").innerHTML = totalcounter;
 						})								
 
+				}).then(()=>{
+						new Promise((resolve,reject)=>{
+							// COUNTER - CC TASKS DD
+									 $.ajax({
+									 url : '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&CURRENT_DATE=<?php echo date('Y-m-d'); ?>',
+												type: 'GET',
+												dataType: 'json',
+												cache: false,
+												success: function (data) {                
+										   if(data.STATUS !== 'ERROR') {
+												var data = JSON.parse(data.DATA);
+												console.log('Rafiq=>',data);
+												
+												if(data.length == 0){
+													document.getElementById("projectTaskCountDD").innerHTML = "0";//
+													$("#projectduetasks").remove();
+													resolve()
+												}
+												else 
+												{
+													if(document.getElementById("projectTaskCountDD"))
+													{
+													document.getElementById("projectTaskCountDD").innerHTML = data.length ? data.length: 0;
+													totalcounter += parseInt(data.length);
+													}
+													resolve()
+												}			
+											} 
+											else{
+												
+												document.getElementById("projectTaskCountDD").innerHTML = "0";//
+													$("#projectduetasks").remove();
+													resolve()
+											}
+										   }
+										  });
+																
+						}).then(()=>{								
+								document.getElementById("totaltaskscountDD").innerHTML = totalcounter;
+						})								
+
 				})
 			})				
 		})
@@ -862,8 +903,8 @@ $.ajax({
        }
       }); 
 	  
-	  
-	 		
+	
+ 		
 		
 	
 		
@@ -1154,7 +1195,13 @@ div.hdr_menu{
                                        <a class="nav-link collapsed" href="#submenuCCtaskDD" data-toggle="collapse" data-target="#submenuCCtaskDD" id="ccTasksDD"><span style="float:left">CC Tasks</span><span class="badge-pill" id="ccTaskCountDD"></span></a>
                                         <div class="collapse" id="submenuCCtaskDD" aria-expanded="false"></div>
                                        </li>
-                                       
+										
+										
+                                        <li class="nav-item" id="projectduetasks">                                        
+                                        <a class="nav-link collapsed" href="#submenu1p_proj" data-toggle="collapse" data-target="#submenu1p_proj" id="projectTasksDD" style="background:#93bcc7;"><span style="float:left">Project Tasks</span><span id="projectTaskCountDD" class="badge-pill"></span></a>
+                                        <div class="collapse" id="submenu1p_proj" aria-expanded="false"></div>
+                                        </li> 
+										
                                     </ul>
                                 </div>
                             </li>                            
@@ -1280,6 +1327,7 @@ var submenuOtherDD = $('#submenuOtherDD');
 var submenuCCtaskDD = $('#submenuCCtaskDD');
 var submenuCC = $('#submenuCC');
 var submenu1p = $('#submenu1p');
+var submenu1p_proj = $('#submenu1p_proj');
 var submenu1myp = $('#submenu1myp');
 var submenuMeDD2 = $('#submenuMeDD2'); 
 var submenuMe2 = $('#submenuMe2'); 
@@ -1325,6 +1373,9 @@ $('#breadcrumb').html('Home &raquo; Due Today &raquo; Assigned to Me');
 	$("a#personalTasksDD").removeClass("nav-link");
 	$("a#personalTasksDD").addClass("nav-link collapsed");
 	$("a#personalTasksDD").attr('aria-expanded','false');
+	$("a#projectTasksDD").removeClass("nav-link");
+	$("a#projectTasksDD").addClass("nav-link collapsed");
+	$("a#projectTasksDD").attr('aria-expanded','false');
 	$("div#submenu1p").removeClass("collapse show");
 	$("div#submenu1p").addClass("collapse");
 	$("div#submenu1p").attr('aria-expanded','false');
@@ -1670,6 +1721,80 @@ $('#breadcrumb').html('Home &raquo; Assigned to Other &raquo; '+uname + ' &raquo
         activeTab($(this), $('#personalTasksDD'));
 		
     });
+	
+	    $('#projectTasksDD').click(function(e) {
+		$('#breadcrumb').html('Home &raquo; Due Today &raquo; Project Tasks');
+		taskList.empty();
+		 taskDetail.empty();
+
+	
+
+	if($('a#projectTasksDD').attr('aria-expanded') == 'false')
+	{
+		dueTaskProjectDueFunction();
+		
+	}
+	else
+	{
+		taskList.empty();
+		taskDetail.empty();
+
+	}
+
+			
+	$("a#projectTasksDD").removeClass("nav-link collapsed");
+	$("a#projectTasksDD").addClass("nav-link");
+	$("a#projectTasksDD").attr('aria-expanded','true');
+			
+	$("a#personalTasksDD").removeClass("nav-link");
+	$("a#personalTasksDD").addClass("nav-link collapsed");
+	$("a#personalTasksDD").attr('aria-expanded','false');
+			
+	$("a#assignMeDD").removeClass("nav-link");
+	$("a#assignMeDD").addClass("nav-link collapsed");
+	$("a#assignMeDD").attr('aria-expanded','false');
+			
+	$("div#submenuMeDD").removeClass("collapse show");
+	$("div#submenuMeDD").addClass("collapse");
+	$("div#submenuMeDD").attr('aria-expanded','false');
+	$("a#ccTasksDD").removeClass("nav-link");
+	$("a#ccTasksDD").addClass("nav-link collapsed");
+	$("a#ccTasksDD").attr('aria-expanded','false');
+	$("div#submenuCCtaskDD").removeClass("collapse show");
+	$("div#submenuCCtaskDD").addClass("collapse");
+	$("div#submenuCCtaskDD").attr('aria-expanded','false');
+	$("a#assignOthersDD").removeClass("nav-link");
+	$("a#assignOthersDD").addClass("nav-link collapsed");
+	$("a#assignOthersDD").attr('aria-expanded','false');
+	$("div#submenuOtherDD").removeClass("collapse show");
+	$("div#submenuOtherDD").addClass("collapse");
+	$("div#submenuOtherDD").attr('aria-expanded','false');
+	
+	 
+        var url = '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>&TYPE=PROJECTCTR&CURRENT_DATE=<?php echo date('Y-m-d'); ?>';
+        $.ajax({
+            url:  url,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+               var data = JSON.parse(data.DATA);
+  		 submenu1p_proj.empty();
+
+		 if(data[0].repeated > 0 && data[0].nonrepeated > 0){
+			 submenu1p_proj.append('<ul class="menu-items nav flex-column flex-nowrap" style="margin:1px 13px;"><li class="nav-item"><a class="nav-link" href="#" id="dueTaskPersonalRep" onclick="dueTaskPersonalRepFunction();"><span style="float:left">Repeated Tasks</span><span class="badge-pill" id="">'+data[0].repeated+'</span></a></li></ul>');		 
+		 } else if(data[0].repeated > 0 && data[0].nonrepeated == 0){
+			 submenu1p_proj.append('<ul class="menu-items nav flex-column flex-nowrap" style="margin:1px 13px;"><li class="nav-item"><a class="nav-link" href="#" id="dueTaskPersonalRep" onclick="dueTaskPersonalRepFunction();"><span style="float:left">Repeated Tasks</span><span class="badge-pill" id="">'+data[0].repeated+'</span></a></li></ul>');
+		 }
+	
+            }
+        });
+    
+
+        activeTab($(this), $('#projectTasksDD'));
+		
+    });
+	
 	 $('#myPersonalTasks').click(function(e) {	
 		
 		$('#breadcrumb').html('Home &raquo; My Personal Tasks &raquo; Non Repeated Tasks');
@@ -1738,6 +1863,16 @@ console.log(data);
         showPersonalTasksDDDue(url, 1, 'tasks');
         activeTab($(this), $('#dueTaskPersonalDue'));
     }
+	
+	
+	function dueTaskProjectDueFunction() {
+			$('#breadcrumb').html('Home &raquo; Due Today &raquo; Project Tasks');
+        var url = '<?php echo $url; ?>api2/tasks/fetch-project-due-tasks?USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+        showProjectTasksDDDue(url, 1, 'tasks');
+        activeTab($(this), $('#dueTaskProjectDue'));
+    }
+	
+	
 	//dueTaskPersonalDue
 	//$('#dueTaskPersonalRep').click(function(e) {
 		function dueTaskPersonalRepFunction() {
@@ -3025,6 +3160,116 @@ var seleteduser = "";
 
 }
 
+
+function funshowUsersShipmentsOnly(uid,customer_name)
+{	
+ 	//console.log(uid);
+	//console.log(customer_name);
+	//return false;
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				showTaskListShipmentsRedOnly(data,customer_name);
+				showTaskListShipmentsGreenOnly(data,customer_name);
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
+function funshowUsersShipmentsCustomers(uid)
+{	
+
+var seleteduser = "";
+		 $.ajax({
+	url: '<?php echo $url; ?>api2/tasks/fetch-member-details?USER_ID='+uid,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {                
+       if(data.STATUS !== 'ERROR') {
+            var data = JSON.parse(data.DATA);
+			//console.log(data);
+			//alert(data.FULL_NAME+'=aa');
+			seleteduser = data.FULL_NAME;	
+
+	$('#breadcrumb').html('Home &raquo; Adv Shipment/RMA &raquo; '+seleteduser);
+
+  
+        }
+            }
+        }); 
+		
+		
+	 taskList.empty();
+	 taskDetail.empty();
+
+	/////////////////////////////////////////////
+	var url = '<?php echo $url; ?>api2/shipments/fetch-shipment-group-customers?CREATOR_ID='+uid+'&USER_ID=<?php echo $_SESSION['logged_in']['USER_ID']; ?>';
+	 $.ajax({
+		url: url,
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function (data) {
+			taskList.empty();
+			taskDetail.empty();			
+			if(data.STATUS !== 'ERROR') {
+				var data = JSON.parse(data.DATA);
+				console.log('Rafiq-Testin>>>>>>>>>>>>>>>>',data);
+				
+				showTaskListShipmentsCustomers(data,uid,seleteduser);
+				
+				
+	} else {
+		taskList.append('<div class="error">' + data.MESSAGE + '</div>')
+	}
+
+		}
+	});
+	activeTab($(this), 0);
+
+}
+
+
 function funshowUsersShipmentsSearched(keyValue)
 {
 	
@@ -3155,7 +3400,7 @@ function showAssignMeUsersList()
 				var bgclr = ' background:rgba(237, 242, 249, 0.77);';
 			for (var i = 0; i < data.length; i++) {
 				if(i%2==0) { bgclr = ' background:rgba(255, 255, 255, 0.8);'; } else { bgclr = ' background:rgba(237, 242, 249, 0.77);'; }
-			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
+			submenuShipmentUsers.append('<li class="nav-item" style="border:1px solid #aaa; margin:2px 10px; padding:3px; '+bgclr+' border-radius:4px;"><a class="nav-link" style="padding:3px; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue; font-size:0.75em; color:#084557;" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" >'+data[i].FULL_NAME+' <span id="projectTaskCount" class="badge-pill" style="width:auto; font-weight:normal;">'+data[i].total+'</span></a></li>');
             }
 			submenuShipmentUsers.append('</ul>');
 			}
@@ -3222,6 +3467,29 @@ function showSearchTaskListShipmentsWhite(d)
 	$('#totalsearched').text(ctrd);//<span id="totalsearched">
 }
 
+function showTaskListShipmentsCustomers(d, uid, seleteduser)
+{
+	var ctrd = 0;
+	
+	<?php /*?>if(d.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found Approved with Final Status Pending!</h6></div>');
+	}<?php */?>	
+	taskList.append('<div class="mail-list" style="background: white;color:darkblue;"><h6 style="margin:0px">SELECTED USER : <strong>'+seleteduser+'</strong></h6></div>');
+	
+	for (var i = 0; i < d.length; i++) {
+		ctrd++;
+		//console.log(d[i].CUSTOMER_NAME);
+		
+		var fcusname = "funshowUsersShipmentsOnly("+uid+",'"+d[i].CUSTOMER_NAME+"');";//d[i].CUSTOMER_NAME;
+		
+		
+		taskList.append('<div class="mail-list" style="background: grey;color:white;clear: both;" onclick="' + fcusname + '"><h6 style="margin:0px"><strong>' + d[i].CUSTOMER_NAME + '</strong></h6><span  style="color:#fff; text-align:right; position:absolute; right:10px;"> Total Invoices : ' + d[i].total + ' ( $ ' + d[i].ptotal + ')</span></div>');		
+	}
+	if(ctrd == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsWhite(d)
 {
 	var ctrd = 0;
@@ -3284,6 +3552,39 @@ function showTaskListShipmentsRed(dy)
 		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
 	}
 }
+function showTaskListShipmentsRedOnly(dy,cname)
+{
+	var ctrdy = 0;
+	//console.log(dy);
+	taskList.append('<div class="mail-list" style="background:#ad0000;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - PENDING</h6></div>');
+<?php /*?>	if(dy.length == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+<?php */?>
+	for (var i = 0; i < dy.length; i++) {	
+		console.log(cname +"=="+dy[i].CUSTOMER_NAME);
+		if(cname != dy[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dy[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dy[i].FINAL_STATUS=="PENDING" ){
+			ctrdy++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dy[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#ad0000;">' + advanceRMA + ' By ' + dy[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + dy[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#ad0000;">INVOICE# ' + dy[i].INVOICE_NUMBER + '  PRICE $ '+ dy[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#ad0000;">' + convertDate(dy[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#ad0000;">'+dy[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdy == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:red;">No Shipment/RMA Found With Final Status Pending!</h6></div>');
+	}
+}
+
 function showTaskListShipmentsGreen(dx)
 {
 	var ctrdx = 0;
@@ -3311,6 +3612,37 @@ function showTaskListShipmentsGreen(dx)
 		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
 	}
 }
+
+function showTaskListShipmentsGreenOnly(dx,cname)
+{
+	var ctrdx = 0;
+	//console.log(dx);
+	taskList.append('<div class="mail-list" style="background:#038912;color:white;"><h6 style="margin:0px">Advance Shipment/RMA - RECEIVED</h6></div>');
+	
+	for (var i = 0; i < dx.length; i++) {	
+		console.log(cname +"=="+dx[i].CUSTOMER_NAME);
+		if(cname != dx[i].CUSTOMER_NAME) { continue; }
+		var advanceRMA="";
+		var advanceShipmentRMA=dx[i].SHIPMENT_CATEGORY;
+		if(advanceShipmentRMA=="SHIPMENT"){advanceRMA="A.S";}
+		if(advanceShipmentRMA=="RMA"){advanceRMA="A.R";}
+		if(dx[i].FINAL_STATUS=="RECEIVED" ){
+			ctrdx++;
+				taskList.append('<div class="mail-list shipmentDetails" data-task_id="' + dx[i].SHIPMENT_ID + '">' +
+				'<div class="content">' +
+				'<p class="message_text" style="color:#038912;">' + advanceRMA + ' By ' + dx[i].FULL_NAME+'</p>' +
+				'<p class="message_text" style="color:#038912;">' + dx[i].CUSTOMER_NAME + '</p>' +
+				'<p class="message_text" style="color:#038912;">INVOICE# ' + dx[i].INVOICE_NUMBER + '  PRICE $ '+ dx[i].SHIPMENT_TITLE +'</p>' +
+				'<p class="message_text" style="color:#038912;">' + convertDate(dx[i].CREATED_DATE) + '</p>' +
+				'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#038912;">'+dx[i].DAYS+'</div>' +
+				'</div>');
+		}
+	}
+	if(ctrdx == 0) {
+		taskList.append('<div class="mail-list" ><h6 style="color:green;">No Shipment/RMA Found With Final Status Received!</h6></div>');
+	}
+}
+
 
 function showTaskListShipmentsRedSearched(dy)
 {
@@ -4668,7 +5000,7 @@ $.ajax({
            // console.log(data);	
 				
 			for (var i = 0; i < data.length; i++) {
-			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipments('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
+			submenuShipmentUsers.append('<li class="nav-item"><a class="nav-link collapsed menu-heading" id="lnkShip_'+data[i].CREATOR_ID+'" onclick="funshowUsersShipmentsCustomers('+data[i].CREATOR_ID+')" href="#" data-toggle="collapse" data-target="#'+data[i].CREATOR_ID+'" ><span style="float:left; font-size:0.75rem;">'+data[i].FULL_NAME+'</span><span class="badge-pill">'+data[i].total+'</span></a>');
             }
 			submenuShipmentUsers.append('</ul>');
 			
@@ -5092,7 +5424,7 @@ var USER_ID = <?php echo isset($_SESSION['logged_in'])?$_SESSION['logged_in']['U
 					
 				//alert(data.MESSAGE);
 				
-				funshowUsersShipments(USER_ID);
+				funshowUsersShipmentsCustomers(USER_ID);
 				
 				
 		$('div#taskDetails div.message-body').attr("style","visibility:hidden; display:none");
@@ -5554,10 +5886,27 @@ function showDDTasks(u, c, t) {
             cache: false,
             success: function (data) {
                 if(t === 'tasks')
-                    createPersonalTaskListDDDue(data);               
+                   createPersonalTaskListDDDue(data);           
             }
         });
     }
+	
+	function showProjectTasksDDDue(u, c, t) {
+        var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
+
+        $.ajax({
+            url: u + url,
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                if(t === 'tasks')
+					 createProjectTaskListDDDue(data); 
+                                   
+            }
+        });
+    }
+	
 	function showPersonalTasksDDRep(u, c, t) {
         var url = (c === 1) ? '&CURRENT_DATE=<?php echo date('Y-m-d'); ?>' : '';
 
@@ -5706,11 +6055,11 @@ function timeSince(date) {
   var lefttime = Math.floor(seconds) * (-1);
   if((lefttime/3600) > 1)
   {	
-  	return Math.floor(lefttime/3600)+ " Hours left";
+  	return ""; //Math.floor(lefttime/3600)+ " Hours left";
   }
   else
   {
-	 return Math.floor(lefttime/60)+ " Minutes left"; 
+	 return ""; //Math.floor(lefttime/60)+ " Minutes left"; 
   }
 }
 
@@ -5791,8 +6140,12 @@ function toTimestamp(strDate){
 		    var strstyleDD=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
 			var timecheck = timeSince(new Date(duedatae));
 			if (timecheck = timecheck.includes("ago"))
-			{
+			{				
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 /*			
 var anchortag = '<a href="javascript:changeStatusDPNR(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;">Mark as Complete</a>';								
@@ -5855,6 +6208,50 @@ if(data[i].STATUS==1){notificationButton = '<img src="assets/images/btn-on.png" 
             taskList.append('<div class="error">' + d.MESSAGE + '</div>')
         }
     }
+	
+	function createProjectTaskListDDDue(d) {		
+		
+		var datax = d;
+		//console.log('rafiq =>',data);
+		
+		
+						var data = JSON.parse(datax.DATA);
+						
+			    taskList.append('<div class="mail-list" style="background: grey;color:white;"><h6 style="margin:0px">Due Today Projects Tasks List</h6></div>');
+						
+				
+						 console.log(data);		
+						 var tasktype = 'TODO';
+						 
+						 
+						 data.sort(function(a, b){
+    var x = a.TASK_STATUS.toLowerCase();
+    var y = b.TASK_STATUS.toLowerCase();
+    if (x > y) {return -1;}
+    if (x < y) {return 1;}
+    return 0;
+  });
+						 
+						 var clrgreen = "";
+						for (var i = 0; i < data.length; i++) {
+							if(data[i].TASK_STATUS == 'COMPLETED')  clrgreen = 'style="color:green;"';
+								if(data[i].DUE_DATE=="0" || data[i].DUE_DATE == ""){tasktype = 'TODO';} else { tasktype = 'Date:'+convertDate(data[i].DUE_DATE);}
+								
+							taskList.append('<div class="mail-list taskDetailsProj" data-assigned_id="' + data[i].ASSIGNED_ID + '" data-task_id="' + data[i].TASK_ID + '">' +
+								'<div class="content">' +
+								'<p class="message_text" '+clrgreen+'>' + data[i].TASK_TITLE + '</p>' +
+								'<p class="message_text" style="font-size:12px; color:#666;">Assigned: '+ data[i].FULL_NAME+'</p>' +
+								'<p class="message_text">' +tasktype + '</p>' +
+								'</div><div class="message_text" style="width:15%;float:right;text-align:right;color:#000; font-size:12px;">Status:<br />'+data[i].TASK_STATUS+'</div>' +
+								'</div>');
+						}
+						
+					
+       
+       
+    }
+	
+	
 	function createPersonalTaskListDDRep(d) {
         taskList.empty();
        if(d.STATUS !== 'ERROR') {
@@ -5934,6 +6331,10 @@ if(output == "") output = "Never";
 			if (timecheck = timecheck.includes("ago"))
 			{
 				strstyleDD =' style="color:red; font-weight:600; text-transform:capitalize" ';
+			}
+			else{
+				// task does not includes ago i.e. remove yellow tasks
+				continue;
 			}
 			
 var anchortag = '<a href="javascript:changeStatusDD(\'COMPLETED\','+data[i].TASK_ID+');" style="font-size:12px;"><img src="assets/images/mark-completed.gif" id="markascompleted'+data[i].TASK_ID+'" /></a>';								
@@ -7003,7 +7404,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
@@ -7340,7 +7743,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){
+	continue;
+	strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}				
@@ -7688,7 +8093,9 @@ if(date1 - date2 > 0 ){strstyle=' style="color:red; font-weight:600; text-transf
 //alert(datediff(date1, date2)+" = "+date2+"-"+duedatae);
 
 }
-if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';}
+if(date1 - date2 > 0 && ((datediff(date1, date2) == -1)||(datediff(date1, date2) == -2)) ){strstyle=' style="color:#ffd80b; font-weight:600; text-transform:capitalize" ';
+ continue;																						  
+																						  }
 if (data[i].TASK_STATUS=="COMPLETED")
 {strstyle=' style="color:#2cc62c; font-weight:600; text-transform:capitalize" ';} //green
 if(output == "" || duedatae == ""){strstyle=' style="color:black; font-weight:600; text-transform:capitalize" ';}
@@ -8756,9 +9163,7 @@ for (var i = 0; i < arrayLength; i++) {
 }
 if(output == "") output += "Never";
 if(repint == "0,1,2,3,4,5,6") output = "Every Day";
-var duedatae = convertDate(data.DUE_DATE)
-				 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
-				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
+
 var createdatae = convertDate(data.CREATED_DATE)
 				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
 				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
@@ -8797,13 +9202,20 @@ var createdatae = convertDate(data.CREATED_DATE)
 			 '<div class="message-content"><span> </span>' +
             '</div>' + '<span><button class="btn btn-primary btn-sm" id="btn_editTask" type="button"  value="' + data.TASK_ID + '" >Edit Task</button></span> &nbsp; <span><button class="btn btn-primary btn-sm" id="btn_delTask" type="button"  value="' + data.TASK_ID + '" >Delete Task</button></span>' + 
             '</div>'
+			
         );
+		var d = new Date();
+var e = formatDate(d);
+
+alert(e);
 		*/
+	 var d = new Date(data.DUE_DATE_DT);
+
 		 taskDetail.append('<div class="message-body">' +
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+formatDate(d)+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTask" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -8853,9 +9265,8 @@ for (var i = 0; i < arrayLength; i++) {
 }
 if(output == "") output += "Never";
 if(repint == "0,1,2,3,4,5,6") output = "Every Day";
-var duedatae = convertDate(data.DUE_DATE)
-				 if(duedatae=="1 Jan 1970 5:0 AM"){duedatae="";}
-				 if(duedatae=="31 Dec 1969 6:0 PM"){duedatae="";} // new added by rafiq
+var d = new Date(data.DUE_DATE_DT);
+		
 var createdatae = convertDate(data.CREATED_DATE)
 				 if(createdatae=="1 Jan 1970 5:0 AM"){createdatae="";}				 
 				 if(createdatae=="31 Dec 1969 6:0 PM"){createdatae="";} // new added by rafiq
@@ -8900,7 +9311,7 @@ var createdatae = convertDate(data.CREATED_DATE)
            '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_name">Task Name</label><input type="text" class="form-control" id="txt_task_name" placeholder="Task name" value="'+data.TASK_TITLE+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Description</label><textarea class="form-control" id="txt_task_desc" readonly="readonly">'+data.TASK_DESCRIPTION+'</textarea></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Status</label><input type="text" class="form-control" id="txt_task_status" placeholder="Task Status" value="'+data.TASK_STATUS+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_repeat">Repeat</label><input type="text" class="form-control" id="txt_task_repeat" placeholder="Task Repeat" value="'+output+'" readonly="readonly" ></div></div>' +
-		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+duedatae+'" readonly="readonly" ></div></div>' +
+		   '<div class="row" style="margin-top:15px;"><div class="col-md-6"><label for="txt_task_status">Created on</label><input type="text" class="form-control" id="txt_task_created" placeholder="Task Created" value="'+createdatae+'" readonly="readonly" ></div><div class="col-md-6"><label for="txt_task_due">Due on</label><input type="text" class="form-control" id="txt_task_due" placeholder="Task Due On" value="'+formatDate(d)+'" readonly="readonly" ></div></div>' +
 		   '<div class="row" style="margin-top:15px;"><div class="col-md-12"><label for="txt_task_desc">Pictures</label></div></div>'+ 
 		   '<div class="row" style="margin-top:0px 10px;"><div class="col-md-12"><div style="border:1px solid #ccc; width:100%;">' + imgsOutput + '</div></div></div>' +
 		   '<div class="row" style="margin-top:25px;"><div class="col-md-6" style="text-align:center;"><button class="btn btn-primary" style="width:200px;" id="btn_editTask" value="' + data.TASK_ID + '" >Edit Task</button></div><div class="col-md-6" style="text-align:center;"><button class="btn btn-danger" style="width:200px;" id="btn_delTask"  value="' + data.TASK_ID + '" >Delete Task</button></div></div>' +
@@ -11312,7 +11723,19 @@ function funActiveOnly(p,e)
 	$("#"+p).attr('aria-expanded','true');	
 */
 }
-	
+
+	function formatDate(date) {
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  var ampm = hours >= 12 ? 'pm' : 'am';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  minutes = minutes < 10 ? '0'+minutes : minutes;
+  var strTime = hours + ':' + minutes + ' ' + ampm;
+  return (date.getMonth()+1) + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+}
+
+
 	
 </script>
 

@@ -9,6 +9,8 @@ use Psr\Container\ContainerInterface;
 use Validators\AuthValidatorController;
 use Utils\PushNotifications as Notification;
 use \RuntimeException;
+use DateTime;
+use DateTimeZone;
 
 class ChangeStatusOfRepeatedTasks  extends ControllerBase
 {
@@ -104,6 +106,7 @@ class ChangeStatusOfRepeatedTasks  extends ControllerBase
 
         if($task) {
 			
+			echo '<hr />DUE_DATE_DT:'.$task['DUE_DATE_DT'].'<hr />';
             //$dueDate = $this->convertTimestampToDate($task['DUE_DATE']);
             $extractTime = explode(' ', $task['DUE_DATE_DT']);
             $interval = explode(',', $task['REPEAT_INTERVAL']); // task all intervals in array 
@@ -120,14 +123,29 @@ class ChangeStatusOfRepeatedTasks  extends ControllerBase
             }
 
             $nextDueDate = date('Y-m-d', strtotime('next ' . $days[$next])) . ' ' . $extractTime[1];
+			
+			echo '<hr />nextDueDate:'.$nextDueDate.'<hr />';
             //$nextDueDateTs = $this->convertToTimestamp($nextDueDate);
 			//$date = '2021-02-20 22:00:00';
-			date_default_timezone_set("Asia/Karachi");
+			//date_default_timezone_set("Asia/Karachi");
 			//echo "The time is " . date("h:i:sa");
 			//$d = \DateTime::createFromFormat('Y-m-d H:i:s',$nextDueDate,new DateTimeZone('Asia/Karachi'));
 			//$nextDueDateTs = $d->getTimestamp();
+			
+			//$expires = new \DateTime('NOW');
+			
+			//$dt = \DateTime::CreateFromFormat('d-m-Y H:i:s', $nextDueDate);
+			$timezonex = "America/Boise";
+			if (date_default_timezone_get()) {
+    			$timezonex = date_default_timezone_get();
+			}
+			$timezonez = new DateTimeZone($timezonex);
+			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate, $timezonez);
+			$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+			
+			//echo '<hr />dt from DateTime::CreateFromFormat :'.$dt->getTimestamp().'<hr />';
             $params = array(
-                'DUE_DATE'      => strtotime($nextDueDate),
+                'DUE_DATE'      => $dt->getTimestamp(),
                 'DUE_DATE_DT'   => $nextDueDate,
                 'STATUS'        => 'OPEN',
                 'TASK_ID'       => $task['TASK_ID']
@@ -154,16 +172,28 @@ class ChangeStatusOfRepeatedTasks  extends ControllerBase
 
             $nextDueDate = date('Y-m-d', strtotime('+1 month')) . ' ' . $extractTime[1];
             $nextDueDateTs = $this->convertToTimestamp($nextDueDate);
-			date_default_timezone_set("Asia/Karachi");
+			//date_default_timezone_set("Asia/Karachi");
+			
+			//$dt = \DateTime::CreateFromFormat('d-m-Y H:i:s', $nextDueDate);
+			$timezonex = "America/Boise";
+			if (date_default_timezone_get()) {
+    			$timezonex = date_default_timezone_get();
+			}
+			$timezonez = new DateTimeZone($timezonex);
+			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate, $timezonez);
+			$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+			
+echo '<hr />dt from DateTime::CreateFromFormat :'.$dt.'<hr />';			
+			
             $params = array(
                 //'DUE_DATE'      => $nextDueDateTs,
-				'DUE_DATE'      => strtotime($nextDueDate),
+				'DUE_DATE'      => $dt->getTimestamp(),
                 'DUE_DATE_DT'   => $nextDueDate,
                 'STATUS'        => 'OPEN',
                 'TASK_ID'       => $task['TASK_ID']
             );
 
-            $this->_update_task($params);
+            $this->_update_task($params); 
         }
     }
 

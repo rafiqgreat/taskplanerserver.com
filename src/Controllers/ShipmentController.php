@@ -201,6 +201,41 @@ class ShipmentController extends ControllerBase
                                 $data = $shipmentStatement->fetch(\PDO::FETCH_ASSOC);
 
                                 $this->notifySuperAdmins($shipmentId,$params, 'NEW_SHIPMENT_ADDED');
+								
+								// add notification to table /////
+						/*		
+							
+					$notification_type = "NEW_SHIPMENT_ADDED";								
+					$notification = "NEW SHIPMENT/RMA CREATED FOR CUSTOMER [".$data['CUSTOMER_NAME']."], CATEGORY [".$data['SHIPMENT_CATEGORY']."], AMOUNT [".$data['SHIPMENT_TITLE']."]";
+					$obj_type = 'shipment';			
+
+					if ( $this->db ) {
+						$this->db->beginTransaction();
+						$statementTask = $this->db->prepare( 'INSERT INTO  cor_notifications (NOTIFICATION, NOTIFICATION_TYPE, SENDER_ID, RECEIVER_ID, OBJECT_ID, OBJECT_TYPE) 
+                                                                    VALUES(:notification, :notification_type, :senderId, :receiverId, :objectId, :objectType)' );
+
+
+
+						$statementTask->bindParam( ":notification", $notification );
+						$statementTask->bindParam( ":notification_type", $notification_type );
+						$statementTask->bindParam( ":senderId", $params[ ParamKeys::CREATOR_ID ], \PDO::PARAM_STR );
+						$statementTask->bindParam( ":receiverId", $params[ ParamKeys::CREATOR_ID ], \PDO::PARAM_STR );
+						$statementTask->bindParam( ":objectId", $shipmentId, \PDO::PARAM_STR );
+						$statementTask->bindParam( ":objectType", $obj_type, \PDO::PARAM_STR );
+						$statementTask->execute();
+						$lastInsertId = $this->db->lastInsertId();
+						if ( $this->db->commit() ) {
+							// send notification							
+							//return $this->sendHttpResponseMessage( $response, "notification: " . $notification );
+							// SUCCESS
+						}
+					} else {
+						return $this->sendHTTPResponseError( $response, Messages::MSG_ERR_DB_CONNECTION );
+					}
+				
+							*/	
+								
+								// end add notfication to table ///
 
                                 return $this->sendHttpResponseSuccess($response, $data);
 
