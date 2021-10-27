@@ -9295,7 +9295,7 @@ var createdatae = convertDate(data.CREATED_DATE)
 		*/
 		 var d = new Date(data.DUE_DATE_DT);
 		 if(data.DUE_DATE_DT == null){
-			alert();
+			//alert();
 			 d='';
 			}
 			else
@@ -10299,7 +10299,7 @@ $.ajax({
        url: '<?php echo $url; ?>api2/tasks/update-status',
         type: 'POST',
 		contentType:'application/x-www-form-urlencoded',
-        data:"TASK_ID="+TASK_ID+"&CREATOR_ID="+CREATOR_ID+"&ASSIGNED_ID="+ASSIGNED_ID+"&STATUS="+TASK_STATUS,
+        data:"TASK_ID="+TASK_ID+"&CREATOR_ID="+userid+"&ASSIGNED_ID="+ASSIGNED_ID+"&STATUS="+TASK_STATUS,
 		error: function(err) {
             alert(err.statusText);
         },
@@ -10373,7 +10373,7 @@ $.ajax({
        url: '<?php echo $url; ?>api2/tasks/update-status',
         type: 'POST',
 		contentType:'application/x-www-form-urlencoded',
-        data:"TASK_ID="+TASK_ID+"&CREATOR_ID="+CREATOR_ID+"&ASSIGNED_ID="+ASSIGNED_ID+"&STATUS="+TASK_STATUS,
+        data:"TASK_ID="+TASK_ID+"&CREATOR_ID="+userid+"&ASSIGNED_ID="+ASSIGNED_ID+"&STATUS="+TASK_STATUS,
 		error: function(err) {
             alert(err.statusText);
         },

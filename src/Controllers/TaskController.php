@@ -556,6 +556,8 @@ class TaskController extends ControllerBase {
 					if ( $this->db ) {
 						$this->db->beginTransaction();
 						$tasksStatement = $this->db->prepare( 'UPDATE ' . $this->getTasks() . ' set TASK_STATUS = :status where TASK_ID = :taskId' );
+						
+						//die('UPDATE ' . $this->getTasks() . ' set TASK_STATUS = '.$params[ ParamKeys::STATUS ].' where TASK_ID = '.$params[ ParamKeys::TASK_ID ]);
 						//$tasksStatement->bindParam(":projectId", $params[ParamKeys::PROJECT_ID], \PDO::PARAM_STR);
 						$tasksStatement->bindParam( ":taskId", $params[ ParamKeys::TASK_ID ], \PDO::PARAM_STR );
 						$tasksStatement->bindParam( ":status", $params[ ParamKeys::STATUS ], \PDO::PARAM_STR );
@@ -582,7 +584,7 @@ class TaskController extends ControllerBase {
 								
 								
 								/****************/
-								if($params[ParamKeys::STATUS] == 'COMPLETED')
+								if($params[ParamKeys::STATUS] == 'COMPLETED' && $userData['REPEAT_INTERVAL'] != '' )
 								{									
 									if($userData['REPEAT_INTERVAL'] != 7)
 									{
@@ -636,6 +638,7 @@ class TaskController extends ControllerBase {
             $extractTime = explode(' ', $task['DUE_DATE_DT']);
 			$extractDate = $extractTime[0];
             $interval = explode(',', $task['REPEAT_INTERVAL']); // task all intervals in array 
+			
             sort($interval);
 		
 			$nextDueDate = '';
@@ -651,7 +654,7 @@ class TaskController extends ControllerBase {
 			}
 			//echo '<hr />interval:';
 			//print_r($interval);
-			if($nextDueDate == '')
+			if($nextDueDate == '' && $task['REPEAT_INTERVAL']!= '')
 			{
 				$found = 0;				
 				foreach($interval as $key=>$val){					
@@ -663,7 +666,7 @@ class TaskController extends ControllerBase {
 					}					
 				}
 				if($found ==0)
-				{
+				{					
 					$next = $interval[0];
 				}	
 				//echo 'next:'.$next .' === day[next]:'. $days[$next];
@@ -673,22 +676,28 @@ class TaskController extends ControllerBase {
 			
 			
 			
-			//$dt = \DateTime::CreateFromFormat('d-m-Y H:i:s', $nextDueDate);
-			/*$timezonex = "America/Boise";
-			if (date_default_timezone_get()) {
-    			$timezonex = date_default_timezone_get();
-			}
-			$timezonez = new DateTimeZone($timezonex);*/
-			//$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate, $timezonez);
-			$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
-			
-			//echo '<hr />dt from DateTime::CreateFromFormat :'.$dt->getTimestamp().'<hr />';
-            $params = array(
+			if($nextDueDate!='')
+			{				
+				$dt = DateTime::createFromFormat('Y-m-d  H:i:s', $nextDueDate);
+				$params = array(
                 'DUE_DATE'      => $dt->getTimestamp(),
                 'DUE_DATE_DT'   => $nextDueDate,
                 'STATUS'        => 'OPEN',
                 'TASK_ID'       => $task['TASK_ID']
             );
+				
+			}
+			else
+			{
+				$dt = '';
+				$params = array(
+                'DUE_DATE'      => '',
+                'DUE_DATE_DT'   => '',
+                'STATUS'        => 'OPEN',
+                'TASK_ID'       => $task['TASK_ID']
+            );
+			}
+			
 			//print_r($params);
 			//echo '<=================';
             //die();
@@ -2292,6 +2301,7 @@ public
 						}
 						return $this->sendHttpResponseSuccess( $response, $tasks );
 
+
 					} else {
 						return $this->sendHTTPResponseError( $response, Messages::MSG_ERR_DB_CONNECTION );
 					}
@@ -2492,17 +2502,19 @@ public
 					*/
 
 					if ( $this->db ) {
-						$taskSql = "SELECT * FROM `cor_notifications`, `cor_project_tasks` WHERE OBJECT_ID = TASK_ID AND RECEIVER_ID = :userId AND OBJECT_TYPE = 'task' AND TASK_STATUS IN ('OPEN','IN PROGRESS')  
-ORDER BY CREATED_AT DESC LIMIT 5";
+						$taskSql = "SELECT * FROM `cor_notifications` WHERE RECEIVER_ID = :userId ORDER BY NOTIFICATION_ID DESC LIMIT 7";
 						$tasksStatement = $this->db->prepare( $taskSql );
 						$tasksStatement->bindParam( ":userId", $params[ ParamKeys::USER_ID ], \PDO::PARAM_STR );
 						$tasksStatement->execute();
 						$tasks = $tasksStatement->fetchAll( \PDO::FETCH_ASSOC );
 						if ( $tasks ) {
-
+							
 							$tempx = [];
 							foreach ( $tasks as $task ) {
 								$temp = [];
+								if($task['OBJECT_TYPE'] == 'shipment')
+								$temp[ 'title' ] = 'Shipment Notification - Task Planner';
+								else
 								$temp[ 'title' ] = 'Task Notification - Task Planner';
 								$temp[ 'msg' ] = 'Type:' . $task[ 'NOTIFICATION_TYPE' ] . ', Message: ' . $task[ 'NOTIFICATION' ];
 								$temp[ 'icon' ] = 'https://www.taskplannerserver.com/assets/images/popup-icon.png';

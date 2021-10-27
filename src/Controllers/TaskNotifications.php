@@ -89,6 +89,8 @@ class TaskNotifications extends ControllerBase
             }
         }
 
+		 $tasksStat = $this->db->prepare("UPDATE `cor_project_tasks` SET DUE_DATE_DT = NULL WHERE DUE_DATE_DT LIKE '0000-00-00 00:00:00' OR DUE_DATE_DT LIKE '1969%' OR DUE_DATE_DT LIKE '1970%'");
+          $tasksStat->execute();
         echo "Total $count Interval Notification Pushed";
     }
 

@@ -66,7 +66,7 @@ class TaskIntervalNotifications  extends ControllerBase
                     $task['TASK_ID'], 'task', 'TASK_REMEMBER', $device_tokens, '3 hours.');
             }
         }
-
+/*
         $tasks = $this->_get_task_by_time_1_hour();
         if(!empty($tasks)) {
             foreach ($tasks as $task) {
@@ -89,7 +89,7 @@ class TaskIntervalNotifications  extends ControllerBase
                     $task['TASK_ID'], 'task', 'TASK_REMEMBER', $device_tokens, '30 minutes.');
             }
         }
-
+*/
         echo "Total $count Interval Notification Pushed";
     }
 
